@@ -404,7 +404,7 @@
                 </a>
                 {% endif %}
 
-                {% if fanous_question_bank_active and user.role == 'STUDENT' %}
+                {% if fanous_question_bank_active %}
                 <a href="{% url 'questions_module:choose_mode' %}"
                    data-nav-prefix="/questions/"
                    class="sidebar-link flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold {% if '/questions/' in request.path %}active{% else %}text-slate-600{% endif %}" title="بانک سؤال">

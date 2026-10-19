@@ -1,7 +1,9 @@
 from datetime import timedelta
 from unittest.mock import patch
 
-from django.test import TestCase
+from django.contrib.auth.models import AnonymousUser
+from django.template.loader import render_to_string
+from django.test import RequestFactory, SimpleTestCase, TestCase
 from django.urls import reverse
 from django.utils import timezone
 
@@ -12,6 +14,33 @@ from classroom_module.models import OnlineClass
 from quiz_module.models import Quiz
 
 from .models import ModuleAvailability, PresencePeak
+
+
+class QuestionBankSidebarTests(SimpleTestCase):
+    def render_sidebar(self, user, active=True):
+        request = RequestFactory().get(reverse("questions_module:choose_mode"))
+        content = render_to_string("base.html", {
+            "user": user,
+            "request": request,
+            "fanous_question_bank_active": active,
+        })
+        return content.split("<nav ", 1)[1].split("</nav>", 1)[0]
+
+    def test_question_bank_link_is_visible_for_every_authenticated_role(self):
+        for role in UserRole.values:
+            with self.subTest(role=role):
+                sidebar = self.render_sidebar(User(username="sidebar-user", role=role))
+                self.assertIn('data-nav-prefix="/questions/"', sidebar)
+                self.assertIn(f'href="{reverse("questions_module:choose_mode")}"', sidebar)
+
+    def test_disabled_question_bank_link_is_hidden(self):
+        for role in UserRole.values:
+            with self.subTest(role=role):
+                sidebar = self.render_sidebar(User(username="sidebar-user", role=role), active=False)
+                self.assertNotIn('data-nav-prefix="/questions/"', sidebar)
+
+    def test_question_bank_link_is_hidden_for_anonymous_users(self):
+        self.assertNotIn('data-nav-prefix="/questions/"', self.render_sidebar(AnonymousUser()))
 
 
 class FanousDashboardTests(TestCase):
