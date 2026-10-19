@@ -75,6 +75,9 @@ class FanousDashboardTests(TestCase):
         self.assertContains(response, 'class="presence-card-number presence-number"')
         self.assertContains(response, 'aria-label="به‌روزرسانی کاربران برخط"')
         self.assertContains(response, 'aria-controls="presence-details"')
+        self.assertContains(response, '#live-presence {')
+        self.assertContains(response, '#live-presence .presence-detail-dock.hidden { display: none; }')
+        self.assertContains(response, 'class="presence-user-info"')
         panel = response.content.decode().split('id="live-presence"', 1)[1].split('</section>', 1)[0]
         self.assertNotIn("font-mono", panel)
         self.assertNotContains(response, "presence-neon-btn")

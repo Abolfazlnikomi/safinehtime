@@ -9,104 +9,183 @@
 <link rel="stylesheet" href="{% static 'dashboard_module/fanous-dashboard.css' %}">
 <style>
   /* ===================================================
-     استایل‌های مدرن نئونی، شیشه‌ای و انیمیشن‌های پیشرفته
+     استایل‌های مدرن نئونی، شیشه‌ای و کاملاً ریسپانسیو موبایل
   =================================================== */
 
-  /* گرید فید اخبار و مقالات */
-  .fanous-feed-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: 1.5rem;
+  :root {
+    --fn-primary: #4f46e5;
+    --fn-primary-glow: rgba(79, 70, 229, 0.18);
+    --fn-sky: #0284c7;
+    --fn-sky-glow: rgba(2, 132, 199, 0.18);
+    --fn-card-bg: rgba(255, 255, 255, 0.94);
+    --fn-card-border: rgba(226, 232, 240, 0.85);
   }
 
-  /* کارت مدرن با افکت شیشه‌ای و مرز نوری */
+  .fanous-dashboard {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+
+  /* تضمین چیدمان مناسب اکشن‌کارت‌ها در موبایل حتی در غیاب فایل CSS خارجی */
+  .dash-grid.four {
+    display: grid;
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+    gap: 1rem;
+  }
+  @media (min-width: 640px) {
+    .dash-grid.four {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 1.25rem;
+    }
+  }
+  @media (min-width: 1024px) {
+    .dash-grid.four {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 1.5rem;
+    }
+  }
+
+  .dash-grid.two {
+    display: grid;
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+    gap: 1rem;
+  }
+  @media (min-width: 900px) {
+    .dash-grid.two {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 1.5rem;
+    }
+  }
+
+  /* گرید فید اخبار و مقالات (تطبیق‌پذیر موبایل/تبلت/دسکتاپ) */
+  .fanous-feed-grid {
+    display: grid;
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+    gap: 1.25rem;
+  }
+  @media (min-width: 640px) {
+    .fanous-feed-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+  @media (min-width: 1024px) {
+    .fanous-feed-grid {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 1.5rem;
+    }
+  }
+
+  /* کارت مدرن با افکت شیشه‌ای و بازتاب نوری */
   .fanous-glass-card {
     position: relative;
     display: flex;
     flex-direction: column;
-    background: rgba(255, 255, 255, 0.85);
+    background: var(--fn-card-bg);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
     border-radius: 1.25rem;
-    border: 1px solid rgba(226, 232, 240, 0.8);
+    border: 1px solid var(--fn-card-border);
     overflow: hidden;
-    transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
     text-decoration: none;
-    box-shadow: 0 4px 20px -4px rgba(0, 0, 0, 0.03), 0 2px 6px -1px rgba(0, 0, 0, 0.02);
+    box-shadow: 0 4px 20px -4px rgba(15, 23, 42, 0.05), 0 2px 6px -1px rgba(15, 23, 42, 0.03);
+    transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.35s ease, border-color 0.35s ease;
+    -webkit-tap-highlight-color: transparent;
   }
 
-  /* لایه بازتاب نور هنگام هاور */
+  /* لایه بازتاب نور نئونی هنگام حرکت موس */
   .fanous-glass-card::before {
     content: '';
     position: absolute;
     top: 0;
-    left: -100%;
+    left: -120%;
     width: 60%;
     height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.5), transparent);
     transform: skewX(-25deg);
     transition: left 0.75s ease;
     z-index: 5;
     pointer-events: none;
   }
 
-  .fanous-glass-card:hover::before {
-    left: 150%;
+  /* هاور مخصوص دیوایس‌های دارای موس + افکت فعال روی موبایل (Active state) */
+  @media (hover: hover) and (pointer: fine) {
+    .fanous-glass-card:hover::before {
+      left: 150%;
+    }
+    .fanous-glass-card:hover {
+      transform: translateY(-5px) scale(1.01);
+      box-shadow: 0 20px 35px -10px var(--fn-primary-glow);
+      border-color: rgba(99, 102, 241, 0.45);
+    }
+    .fanous-news-card:hover {
+      box-shadow: 0 20px 35px -10px var(--fn-sky-glow);
+      border-color: rgba(14, 165, 233, 0.45);
+    }
+    .fanous-glass-card:hover .fanous-card-media img {
+      transform: scale(1.07);
+    }
+    .fanous-glass-card:hover .fanous-card-title {
+      color: var(--fn-primary);
+    }
+    .fanous-news-card:hover .fanous-card-title {
+      color: var(--fn-sky);
+    }
+    .fanous-glass-card:hover .fanous-action-btn {
+      gap: 10px;
+      transform: translateX(-4px);
+    }
   }
 
-  .fanous-glass-card:hover {
-    transform: translateY(-6px) scale(1.01);
-    box-shadow: 0 20px 35px -10px rgba(99, 102, 241, 0.15), 0 1px 3px rgba(0,0,0,0.05);
+  /* استایل لمس در گوشی‌های موبایل */
+  .fanous-glass-card:active {
+    transform: scale(0.985);
     border-color: rgba(99, 102, 241, 0.35);
   }
 
-  /* کارت خبر با تم فیروزه‌ای */
-  .fanous-news-card:hover {
-    box-shadow: 0 20px 35px -10px rgba(14, 165, 233, 0.15);
-    border-color: rgba(14, 165, 233, 0.35);
-  }
-
-  /* قاب عکس با افکت زوم نرم */
+  /* رسانه و عکس کارت */
   .fanous-card-media {
     position: relative;
     width: 100%;
-    height: 170px;
+    height: 180px;
     background: #f1f5f9;
     overflow: hidden;
+  }
+  @media (min-width: 768px) {
+    .fanous-card-media {
+      height: 170px;
+    }
   }
 
   .fanous-card-media img {
     width: 100%;
     height: 100%;
     object-fit: cover;
-    transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+    transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
-  .fanous-glass-card:hover .fanous-card-media img {
-    transform: scale(1.08);
-  }
-
-  /* تگ روی تصویر کریستالی */
+  /* برچسب روی عکس */
   .fanous-floating-badge {
     position: absolute;
     bottom: 12px;
     right: 12px;
-    background: rgba(15, 23, 42, 0.65);
+    background: rgba(15, 23, 42, 0.72);
     backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.22);
     color: #ffffff;
     font-size: 0.72rem;
     font-weight: 700;
     padding: 4px 12px;
     border-radius: 9999px;
     letter-spacing: 0.3px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
     z-index: 2;
   }
 
-  /* بدنه کارت */
+  /* بدنه و متن کارت */
   .fanous-card-content {
-    padding: 1.25rem;
+    padding: 1.15rem 1.25rem;
     display: flex;
     flex-direction: column;
     flex-grow: 1;
@@ -115,23 +194,16 @@
   }
 
   .fanous-card-title {
-    font-size: 1rem;
+    font-size: 0.98rem;
     font-weight: 800;
     color: #0f172a;
-    line-height: 1.5;
+    line-height: 1.55;
     margin-bottom: 0.5rem;
     display: -webkit-box;
-    -webkit-line-clamp: 1;
+    -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
-    transition: color 0.2s ease;
-  }
-
-  .fanous-glass-card:hover .fanous-card-title {
-    color: #4f46e5;
-  }
-  .fanous-news-card:hover .fanous-card-title {
-    color: #0284c7;
+    transition: color 0.25s ease;
   }
 
   .fanous-card-desc {
@@ -142,7 +214,7 @@
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
-    margin-bottom: 1.25rem;
+    margin-bottom: 1.15rem;
   }
 
   /* فوتر کارت */
@@ -166,16 +238,25 @@
     transition: all 0.3s ease;
   }
 
-  .fanous-glass-card:hover .fanous-action-btn {
-    gap: 10px;
-    transform: translateX(-3px);
+  /* اصلاح هدر بخش‌ها در صفحه‌های کوچک */
+  @media (max-width: 639px) {
+    .dash-section-head {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0.75rem;
+    }
+    .dash-section-link {
+      align-self: flex-end;
+    }
   }
-
 </style>
+{% if user.role == 'ADMIN' or user.is_superuser %}
+{% include 'dashboard_module/_presence_styles.html' %}
+{% endif %}
 {% endblock %}
 
 {% block content %}
-<div class="fanous-dashboard space-y-8">
+<div class="fanous-dashboard space-y-6 md:space-y-8">
 
   <!-- Hero Section -->
   <section class="dash-hero relative overflow-hidden" data-aos="fade-up">
@@ -190,12 +271,12 @@
           <span>{{ fanous_day_greeting }}</span>
         </span>
 
-        <h1 class="mt-2 font-black tracking-tight">
+        <h1 class="mt-2 text-xl md:text-3xl font-black tracking-tight leading-snug">
           {{ fanous_day_greeting }} {{ user.first_name|default:user.username }} جان؛
           <span class="bg-gradient-to-l from-indigo-600 to-sky-500 bg-clip-text text-transparent">به فانوس خوش آمدی</span>
         </h1>
 
-        <p class="text-slate-500 mt-1">{{ fanous_role_message }}</p>
+        <p class="text-slate-500 text-sm md:text-base mt-1.5">{{ fanous_role_message }}</p>
       </div>
     </div>
   </section>
@@ -579,7 +660,7 @@
   <section class="dash-section" data-aos="fade-up">
     <div class="dash-section-head">
       <div class="dash-section-title">
-        <span class="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
+        <span class="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
           <i class="fa-solid fa-pen-nib"></i>
         </span>
         <div>
@@ -588,7 +669,7 @@
         </div>
       </div>
 
-      <a href="{% url 'blog:post_list' %}" class="dash-section-link group">
+      <a href="{% url 'blog:post_list' %}" class="dash-section-link group shrink-0">
         <span>مشاهده همه مقالات</span>
         <i class="fa-solid fa-arrow-left-long group-hover:-translate-x-1 transition-transform"></i>
       </a>
@@ -642,7 +723,7 @@
   <section class="dash-section" data-aos="fade-up">
     <div class="dash-section-head">
       <div class="dash-section-title">
-        <span class="w-10 h-10 rounded-xl bg-sky-50 text-sky-600 flex items-center justify-center">
+        <span class="w-10 h-10 rounded-xl bg-sky-50 text-sky-600 flex items-center justify-center shrink-0">
           <i class="fa-regular fa-newspaper"></i>
         </span>
         <div>
@@ -651,7 +732,7 @@
         </div>
       </div>
 
-      <a href="{% url 'news_module:article_list' %}" class="dash-section-link group">
+      <a href="{% url 'news_module:article_list' %}" class="dash-section-link group shrink-0">
         <span>مشاهده همه اخبار</span>
         <i class="fa-solid fa-arrow-left-long group-hover:-translate-x-1 transition-transform"></i>
       </a>
@@ -767,7 +848,7 @@
     }
 
     if (!list.length) {
-      users.innerHTML = `<p class="text-xs text-slate-400 col-span-full py-4 text-center">
+      users.innerHTML = `<p class="presence-empty">
         ${filterText ? 'کاربری با این مشخصات یافت نشد.' : 'در حال حاضر هیچ کاربری در این گروه آنلاین نیست.'}
       </p>`;
       return;
@@ -775,16 +856,16 @@
 
     users.innerHTML = list.map(u => `
       <div class="presence-user">
-        <div class="flex items-center gap-2.5 min-w-0">
+        <div class="presence-user-info">
           <span class="presence-user-avatar">
             ${(u.name || u.username || 'U').charAt(0)}
           </span>
-          <div class="truncate">
-            <strong class="block text-xs text-slate-800 truncate">${u.name || u.username}</strong>
-            <small class="presence-user-username block truncate" dir="ltr">${u.username}</small>
+          <div class="presence-user-text">
+            <strong class="presence-user-name">${u.name || u.username}</strong>
+            <small class="presence-user-username" dir="ltr">${u.username}</small>
           </div>
         </div>
-        <span class="w-2 h-2 rounded-full bg-emerald-500 shadow-sm shrink-0"></span>
+        <span class="presence-user-online" aria-hidden="true"></span>
       </div>
     `).join('');
   }

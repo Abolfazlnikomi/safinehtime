@@ -1,0 +1,185 @@
+<style>
+#live-presence,
+#live-presence * {
+  box-sizing: border-box;
+}
+
+#live-presence {
+  position: relative;
+  isolation: isolate;
+  display: block;
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  padding: 1.6rem;
+  border: 1px solid rgba(255, 255, 255, .9);
+  border-radius: 1.75rem;
+  background:
+    radial-gradient(ellipse at 95% 0%, rgba(165, 180, 252, .32), transparent 52%),
+    radial-gradient(ellipse at 0% 100%, rgba(110, 231, 183, .22), transparent 48%),
+    linear-gradient(135deg, rgba(248, 250, 255, .9), rgba(239, 246, 255, .72));
+  box-shadow: 0 18px 50px -24px rgba(49, 46, 129, .28), inset 0 1px 0 rgba(255, 255, 255, .95);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+}
+
+#live-presence .presence-number,
+#live-presence .presence-updated,
+#live-presence .presence-user-username {
+  font-family: 'Aria', Tahoma, sans-serif;
+  font-variant-numeric: tabular-nums lining-nums;
+  font-synthesis: none;
+  letter-spacing: 0;
+}
+
+.presence-refresh-bar {
+  position: absolute;
+  inset: 0 0 auto;
+  height: 3px;
+  background: linear-gradient(90deg, #818cf8, #38bdf8, #34d399);
+  transform-origin: right;
+  transform: scaleX(0);
+}
+
+.presence-command-header,
+.presence-command-title,
+.presence-header-actions,
+.presence-detail-head,
+.presence-detail-title,
+.presence-detail-actions {
+  display: flex;
+  align-items: center;
+  gap: .85rem;
+}
+
+.presence-command-header {
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1.25rem;
+  padding-bottom: 1.25rem;
+  margin-bottom: 1.25rem;
+  border-bottom: 1px solid rgba(148, 163, 184, .18);
+}
+
+.presence-command-title { flex: 1 1 18rem; min-width: 0; }
+.presence-command-title > div { min-width: 0; overflow-wrap: anywhere; }
+.presence-header-actions { flex: 1 1 16rem; min-width: 0; justify-content: flex-end; }
+.presence-command-title h2 { margin: 0; color: #1e293b; font-size: 1.15rem; font-weight: 700; line-height: 1.7; }
+.presence-command-title small { display: block; color: #64748b; font-size: .73rem; line-height: 1.9; }
+.presence-eyebrow { display: flex; align-items: center; gap: .55rem; color: #4f46e5; font-size: .66rem; font-weight: 700; margin-bottom: .2rem; }
+.presence-live-orb { display: grid; place-items: center; flex-shrink: 0; width: 3.1rem; height: 3.1rem; border: 1px solid rgba(255, 255, 255, .95); border-radius: 1.1rem; color: #4f46e5; background: linear-gradient(145deg, rgba(255, 255, 255, .85), rgba(199, 210, 254, .5)); box-shadow: 0 8px 18px -10px rgba(79, 70, 229, .4), inset 0 1px 0 #fff; font-size: 1.15rem; }
+
+.presence-pulse { display: inline-block; flex-shrink: 0; width: .4rem; height: .4rem; border-radius: 50%; background: #10b981; box-shadow: 0 0 0 4px rgba(16, 185, 129, .1); animation: presence-pulse 2.5s ease-in-out infinite; }
+.presence-total { display: flex; align-items: center; gap: 1.2rem; min-width: 0; padding: .7rem 1rem; border: 1px solid rgba(255, 255, 255, .95); border-radius: 1.15rem; background: rgba(255, 255, 255, .6); box-shadow: inset 0 1px 0 #fff, 0 4px 14px rgba(79, 70, 229, .04); }
+.presence-total > div { min-width: 0; overflow-wrap: anywhere; }
+.presence-total-label { display: block; color: #475569; font-size: .72rem; font-weight: 700; }
+.presence-updated { display: block; color: #64748b; font-size: .65rem; margin-top: .3rem; }
+#live-presence .presence-total strong { color: #4338ca; font-size: 2rem; font-weight: 700; line-height: 1.2; }
+.presence-icon-button { display: grid; place-items: center; flex-shrink: 0; width: 2.6rem; height: 2.6rem; border: 1px solid rgba(255, 255, 255, .95); border-radius: .9rem; background: rgba(255, 255, 255, .65); color: #64748b; box-shadow: inset 0 1px 0 #fff; cursor: pointer; transition: background .2s, color .2s, box-shadow .2s; }
+.presence-icon-button:hover { color: #4f46e5; background: rgba(255, 255, 255, .95); }
+
+#live-presence .presence-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 9.5rem), 1fr)); gap: .85rem; width: 100%; min-width: 0; }
+#live-presence .presence-glass-card {
+  --presence-accent: #4f46e5;
+  --presence-tint: rgba(99, 102, 241, .09);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 1.15rem;
+  min-width: 0;
+  min-height: 9.5rem;
+  padding: 1rem;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, .95);
+  border-radius: 1.2rem;
+  background: linear-gradient(145deg, rgba(255, 255, 255, .84), rgba(255, 255, 255, .4));
+  box-shadow: inset 0 1px 0 #fff, 0 8px 20px -14px rgba(51, 65, 85, .25);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  font: inherit;
+  text-align: right;
+  cursor: pointer;
+  transition: transform .2s, box-shadow .2s, border-color .2s, background .2s;
+}
+#live-presence .presence-glass-card::after { content: ''; position: absolute; inset: auto -.5rem -3.5rem auto; width: 7rem; height: 7rem; border-radius: 50%; background: var(--presence-tint); filter: blur(12px); pointer-events: none; }
+#live-presence .presence-glass-card > * { position: relative; z-index: 1; }
+#live-presence [data-presence-group="superusers"] { --presence-accent: #9333ea; --presence-tint: rgba(168, 85, 247, .12); }
+#live-presence [data-presence-group="admins"] { --presence-accent: #4f46e5; --presence-tint: rgba(99, 102, 241, .12); }
+#live-presence [data-presence-group="consultants"] { --presence-accent: #0284c7; --presence-tint: rgba(14, 165, 233, .12); }
+#live-presence [data-presence-group="trustees"] { --presence-accent: #b45309; --presence-tint: rgba(245, 158, 11, .12); }
+#live-presence [data-presence-group="moderators"] { --presence-accent: #0f766e; --presence-tint: rgba(20, 184, 166, .12); }
+#live-presence [data-presence-group="students"] { --presence-accent: #059669; --presence-tint: rgba(16, 185, 129, .12); }
+#live-presence .presence-glass-card:hover { transform: translateY(-3px); border-color: var(--presence-accent); box-shadow: 0 12px 22px -15px var(--presence-accent), inset 0 1px 0 #fff; }
+#live-presence .presence-glass-card.active-group { border-color: var(--presence-accent); background: linear-gradient(145deg, rgba(255, 255, 255, .95), var(--presence-tint)); box-shadow: 0 0 0 2px var(--presence-tint), 0 12px 22px -15px var(--presence-accent); }
+.presence-card-head { display: flex; align-items: center; justify-content: space-between; gap: .35rem; }
+.presence-card-label { color: #475569; font-size: .73rem; font-weight: 700; line-height: 1.7; }
+.presence-card-icon { display: grid; place-items: center; flex-shrink: 0; width: 2.1rem; height: 2.1rem; border: 1px solid rgba(255, 255, 255, .9); border-radius: .75rem; color: var(--presence-accent); background: var(--presence-tint); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .8); }
+.presence-card-bottom { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: .4rem; margin-top: auto; }
+#live-presence .presence-card-number { color: #1e293b; font-size: 2.1rem; font-weight: 700; line-height: 1.25; }
+.presence-card-status { display: inline-flex; align-items: center; gap: .35rem; color: #64748b; font-size: .63rem; white-space: nowrap; }
+.presence-card-status::before { content: ''; width: .3rem; height: .3rem; border-radius: 50%; background: #10b981; }
+.presence-card-status.is-empty::before { background: #94a3b8; }
+
+#live-presence .presence-detail-dock.hidden { display: none; }
+.presence-user-info { display: flex; align-items: center; gap: .625rem; min-width: 0; }
+.presence-user-text { min-width: 0; }
+.presence-user-name,
+.presence-user-username { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.presence-user-name { color: #1e293b; font-size: .75rem; }
+.presence-user-online { flex-shrink: 0; width: .5rem; height: .5rem; border-radius: 50%; background: #10b981; }
+.presence-empty { grid-column: 1 / -1; padding: 1rem 0; color: #94a3b8; font-size: .75rem; text-align: center; }
+.presence-detail-dock { margin-top: 1rem; padding: 1.1rem; border: 1px solid rgba(255, 255, 255, .95); border-radius: 1.25rem; background: rgba(255, 255, 255, .6); box-shadow: inset 0 1px 0 #fff; backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); }
+.presence-detail-head { justify-content: space-between; flex-wrap: wrap; padding-bottom: .9rem; margin-bottom: .9rem; border-bottom: 1px solid rgba(148, 163, 184, .15); }
+.presence-detail-title { min-width: 0; flex-wrap: wrap; gap: .65rem; }
+.presence-detail-actions { min-width: 0; max-width: 100%; }
+.presence-detail-title h3 { color: #334155; font-size: .85rem; font-weight: 700; margin: 0; }
+#live-presence .presence-count-badge { display: inline-grid; place-items: center; min-width: 1.8rem; min-height: 1.5rem; padding: .15rem .5rem; border: 1px solid rgba(199, 210, 254, .65); border-radius: .55rem; background: rgba(224, 231, 255, .6); color: #4f46e5; font-size: .75rem; font-weight: 700; }
+.presence-search { position: relative; width: 15rem; min-width: 0; }
+.presence-search input { width: 100%; padding: .65rem .85rem .65rem 2.3rem; border: 1px solid rgba(203, 213, 225, .65); border-radius: .8rem; color: #334155; background: rgba(255, 255, 255, .7); font: inherit; font-size: .73rem; }
+.presence-search input::placeholder { color: #64748b; }
+.presence-search i { position: absolute; left: .85rem; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: .8rem; pointer-events: none; }
+.presence-close { width: 2.3rem; height: 2.3rem; }
+.presence-users { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr)); gap: .6rem; max-height: 16rem; overflow-y: auto; scrollbar-width: thin; scrollbar-color: #c7d2fe transparent; }
+.presence-user { display: flex; align-items: center; justify-content: space-between; gap: .75rem; min-width: 0; padding: .75rem; border: 1px solid rgba(255, 255, 255, .95); border-radius: .9rem; background: rgba(255, 255, 255, .65); }
+.presence-user-avatar { display: grid; place-items: center; flex-shrink: 0; width: 2.25rem; height: 2.25rem; border: 1px solid rgba(199, 210, 254, .6); border-radius: .75rem; color: #4f46e5; background: rgba(224, 231, 255, .5); font-size: .8rem; font-weight: 700; }
+.presence-user-username { font-size: .67rem; color: #64748b; text-align: right; }
+.presence-skeleton-card { min-height: 9.5rem; border: 1px solid rgba(255, 255, 255, .9); border-radius: 1.2rem; background: linear-gradient(100deg, rgba(255, 255, 255, .45) 30%, rgba(255, 255, 255, .85) 50%, rgba(255, 255, 255, .45) 70%); background-size: 200% 100%; animation: presence-shimmer 1.8s linear infinite; }
+
+#live-presence button:focus-visible,
+#live-presence input:focus-visible { outline: 2px solid #6366f1; outline-offset: 3px; }
+
+@keyframes presence-pulse { 50% { box-shadow: 0 0 0 6px rgba(16, 185, 129, .04); } }
+@keyframes presence-shimmer { to { background-position: -200% 0; } }
+
+@media (max-width: 700px) {
+  #live-presence { padding: 1.1rem; border-radius: 1.4rem; }
+  .presence-header-actions { width: 100%; }
+  .presence-total { flex: 1; justify-content: space-between; }
+  #live-presence .presence-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .65rem; }
+  #live-presence .presence-glass-card { padding: .85rem; }
+  .presence-detail-actions { width: 100%; }
+  .presence-search { flex: 1; width: auto; min-width: 0; }
+  .presence-search input { font-size: 1rem; }
+}
+@media (max-width: 420px) {
+  #live-presence { padding: .85rem; }
+  .presence-command-header { gap: .85rem; }
+  .presence-header-actions { gap: .5rem; }
+  .presence-total { gap: .5rem; padding: .65rem; }
+  .presence-detail-dock { padding: .75rem; }
+  .presence-command-title { align-items: flex-start; gap: .65rem; }
+  .presence-command-title h2 { font-size: 1rem; }
+  .presence-live-orb { width: 2.6rem; height: 2.6rem; border-radius: .9rem; }
+  .presence-card-head { flex-direction: column-reverse; align-items: flex-start; gap: .65rem; }
+  .presence-users { grid-template-columns: 1fr; }
+}
+@media (prefers-reduced-motion: reduce) {
+  #live-presence .presence-pulse,
+  #live-presence .presence-skeleton-card,
+  #live-presence .presence-icon-button i { animation: none; }
+  #live-presence .presence-refresh-bar { visibility: hidden; }
+  #live-presence .presence-glass-card,
+  #live-presence .presence-icon-button { transition: none; }
+  #live-presence .presence-glass-card:hover { transform: none; }
+}
+</style>
