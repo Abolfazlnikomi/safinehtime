@@ -13,8 +13,51 @@ from .models import (
     TicketStatus,
     TicketType,
 )
-from .forms import ReferralForm
+from .forms import ReferralForm, TicketCreateForm
 from .services import can_access_ticket, consultant_can_access, visible_tickets_for
+
+
+class TicketCreateFormTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        province = Province.objects.create(name="ticket-form-province")
+        school = School.objects.create(name="مدرسه", province=province)
+        grade = Grade.objects.create(title="دهم", school=school)
+        field = FieldOfStudy.objects.create(title="ریاضی", grade=grade)
+        user = User.objects.create_user(username="ticket-form-student", role=UserRole.STUDENT)
+        cls.student = Student.objects.create(user=user, field=field)
+        cls.subject = Subject.objects.create(title="حسابان", field=field)
+
+    def form_data(self, ticket_type, subject=""):
+        return {"title": "پرسش جدید", "content": "متن پرسش", "ticket_type": ticket_type, "subject": subject}
+
+    def test_lesson_requires_subject(self):
+        form = TicketCreateForm(self.form_data(TicketType.LESSON), student=self.student)
+        self.assertFalse(form.is_valid())
+        self.assertIn("subject", form.errors)
+        self.assertFalse(form.fields["subject"].disabled)
+
+    def test_lesson_accepts_student_subject(self):
+        form = TicketCreateForm(self.form_data(TicketType.LESSON, self.subject.pk), student=self.student)
+        self.assertTrue(form.is_valid(), form.errors)
+        self.assertEqual(form.cleaned_data["subject"], self.subject)
+
+    def test_non_lesson_disables_and_ignores_subject(self):
+        for ticket_type in (TicketType.TECHNICAL, TicketType.PSYCHOLOGY):
+            for subject in ("", str(self.subject.pk), "invalid-subject"):
+                with self.subTest(ticket_type=ticket_type, subject=subject):
+                    form = TicketCreateForm(self.form_data(ticket_type, subject), student=self.student)
+                    self.assertTrue(form.fields["subject"].disabled)
+                    self.assertTrue(form.is_valid(), form.errors)
+                    self.assertIsNone(form.cleaned_data["subject"])
+
+    def test_create_page_renders_topic_cards(self):
+        self.client.force_login(self.student.user)
+        response = self.client.get(reverse("ticketing:create"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'type="radio"', count=3)
+        self.assertContains(response, 'ticket-create.js')
+        self.assertContains(response, 'ticket-create.css')
 
 
 class TicketingFlowTests(TestCase):

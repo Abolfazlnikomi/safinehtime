@@ -1,0 +1,26 @@
+<section class="dash-grid two upcoming-events" id="dashboard-upcoming" aria-label="برنامه‌های پیش رو">
+  <section class="dash-section upcoming-panel quiz-panel" aria-labelledby="upcoming-quizzes-heading">
+    <div class="dash-section-head">
+      <div class="dash-section-title"><span class="upcoming-icon"><i class="fa-solid fa-clipboard-question" aria-hidden="true"></i></span><div><span class="schedule-eyebrow">آماده برای قدم بعدی</span><h2 id="upcoming-quizzes-heading">آزمون‌های پیش رو</h2><small>یک قدم آماده‌تر برای موفقیت</small></div></div>
+      {% if fanous_quizzes_active or user.is_superuser or user.role == 'ADMIN' %}<a class="dash-section-link" href="{% url 'quiz_module:quiz_list' %}">همه آزمون‌ها <i class="fa-solid fa-arrow-left" aria-hidden="true"></i></a>{% endif %}
+    </div>
+    <div class="schedule-overview"><span><i class="fa-regular fa-clock" aria-hidden="true"></i> تقویم آزمون‌های تو</span><span class="schedule-total"><b data-schedule-count="quiz">—</b> آزمون</span></div>
+    <div data-schedule-list="quiz">
+      {% for event in fanous_event_feed.events %}{% if event.kind == 'quiz' %}{% include "dashboard_module/_scheduled_event.html" %}{% endif %}{% endfor %}
+    </div>
+    <div class="schedule-empty" data-schedule-empty="quiz"><span class="schedule-empty-art" aria-hidden="true"><i class="fa-solid fa-clipboard-check"></i></span><strong>فرصتی برای آماده‌تر شدن</strong><p>فعلاً آزمونی در پیش نیست؛<br>وقت خوبی برای مرور و یک شروع قوی‌تر است.</p><span class="schedule-empty-pill"><i class="fa-solid fa-star" aria-hidden="true"></i> قدم‌های کوچک، نتیجه‌های بزرگ</span></div>
+    <footer class="schedule-panel-footer"><span class="schedule-sync-dot" aria-hidden="true"></span> به‌محض شروع آزمون، اینجا باخبر می‌شوی.</footer>
+  </section>
+  <section class="dash-section upcoming-panel classroom-panel" aria-labelledby="upcoming-classes-heading">
+    <div class="dash-section-head">
+      <div class="dash-section-title"><span class="upcoming-icon"><i class="fa-solid fa-chalkboard-user" aria-hidden="true"></i></span><div><span class="schedule-eyebrow">یک قرار با یادگیری</span><h2 id="upcoming-classes-heading">کلاس‌های پیش رو</h2><small>زمان یادگیری بعدی تو</small></div></div>
+      {% if user.role == 'STUDENT' or user.role == 'CONSULTANT' or user.role == 'ADMIN' or user.is_superuser %}<a class="dash-section-link" href="{% url 'classroom_module:list' %}">همه کلاس‌ها <i class="fa-solid fa-arrow-left" aria-hidden="true"></i></a>{% endif %}
+    </div>
+    <div class="schedule-overview"><span><i class="fa-regular fa-calendar" aria-hidden="true"></i> قرارهای آموزشی تو</span><span class="schedule-total"><b data-schedule-count="classroom">—</b> کلاس</span></div>
+    <div data-schedule-list="classroom">
+      {% for event in fanous_event_feed.events %}{% if event.kind == 'classroom' %}{% include "dashboard_module/_scheduled_event.html" %}{% endif %}{% endfor %}
+    </div>
+    <div class="schedule-empty" data-schedule-empty="classroom"><span class="schedule-empty-art" aria-hidden="true"><i class="fa-solid fa-laptop"></i></span><strong>قرار بعدی، یک چیز تازه یاد بگیر</strong><p>فعلاً کلاسی در پیش نیست؛<br>کلاس‌های جدید همین‌جا منتظرت خواهند بود.</p><span class="schedule-empty-pill"><i class="fa-solid fa-book-open" aria-hidden="true"></i> یادگیری هیچ‌وقت متوقف نمی‌شود</span></div>
+    <footer class="schedule-panel-footer"><span class="schedule-sync-dot" aria-hidden="true"></span> به‌محض شروع کلاس، اینجا باخبر می‌شوی.</footer>
+  </section>
+</section>

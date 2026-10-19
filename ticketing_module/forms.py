@@ -28,14 +28,22 @@ class TicketCreateForm(forms.ModelForm):
         fields = ["title", "ticket_type", "subject"]
         labels = {"title": "عنوان", "ticket_type": "موضوع", "subject": "درس"}
         widgets = {
-            "title": forms.TextInput(attrs={"class": INPUT_CLASS}),
-            "ticket_type": forms.Select(attrs={"class": INPUT_CLASS}),
+            "title": forms.TextInput(attrs={"class": INPUT_CLASS, "placeholder": "خلاصه‌ای کوتاه از پرسشت بنویس"}),
+            "ticket_type": forms.RadioSelect(),
             "subject": forms.Select(attrs={"class": INPUT_CLASS}),
         }
 
     def __init__(self, *args, student=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.student = student
+        ticket_type = (
+            self.data.get(self.add_prefix("ticket_type"))
+            if self.is_bound
+            else self.initial.get("ticket_type", self.instance.ticket_type)
+        )
+        self.fields["subject"].disabled = ticket_type != TicketType.LESSON
+        self.fields["subject"].empty_label = "درس مرتبط با پرسش را انتخاب کنید"
+        self.fields["content"].widget.attrs["placeholder"] = "پرسشت را با جزئیات بنویس تا بهتر راهنمایی‌ات کنیم…"
         if student:
             self.fields["subject"].queryset = Subject.objects.filter(
                 field=student.field, is_active=True

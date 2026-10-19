@@ -354,9 +354,6 @@ function initializeRealTimeUpdates() {
   // Update time every second
   setInterval(updateCurrentTime, 1000)
 
-  // Check for new notifications every 30 seconds
-  setInterval(checkNotifications, 30000)
-
   // Update attendance status every 5 minutes
   setInterval(updateAttendanceStatus, 300000)
 }

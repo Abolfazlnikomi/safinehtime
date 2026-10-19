@@ -658,9 +658,10 @@
                     <div class="relative">
                         <button id="notification-toggle" type="button"
                                 data-read-url="{% url 'notifications_read' %}"
+                                data-feed-url="{% url 'notifications_feed' %}"
                                 data-csrf="{{ csrf_token }}"
                                 class="fanous-notification-button"
-                                aria-label="اعلان‌های تازه">
+                                aria-label="اعلان‌های تازه" aria-expanded="false" aria-controls="notification-panel">
                             <i class="fa-regular fa-bell text-lg"></i>
                             {% if fanous_unread_count %}<span id="notification-count" class="fanous-notification-count">{{ fanous_unread_count }}</span>{% endif %}
                         </button>
@@ -668,15 +669,15 @@
                             <div class="fanous-notification-head">
                                 <div>
                                     <strong class="block text-sm text-slate-800">تازه‌های فانوس</strong>
-                                    <small class="mt-1 block text-[10px] text-slate-400">خبرها و مطالب جدید</small>
+                                    <small class="mt-1 block text-[10px] text-slate-400">کلاس‌ها، آزمون‌ها و تازه‌های سامانه</small>
                                 </div>
-                                <span class="rounded-full bg-sky-50 px-2.5 py-1 text-[10px] font-black text-sky-600">{{ fanous_unread_count }} تازه</span>
+                                <span data-notification-summary class="rounded-full bg-sky-50 px-2.5 py-1 text-[10px] font-black text-sky-600">{{ fanous_unread_count }} تازه</span>
                             </div>
-                            <div class="max-h-80 overflow-y-auto">
+                            <div id="notification-items" class="max-h-80 overflow-y-auto">
                                 {% for item in fanous_notifications %}
                                 <a href="{{ item.url }}" class="fanous-notification-item">
-                                    <span class="notification-symbol {{ item.kind }}"><i class="fa-solid {% if item.kind == 'blog' %}fa-pen-nib{% elif item.kind == 'classroom' %}fa-chalkboard-user{% else %}fa-newspaper{% endif %}"></i></span>
-                                    <span class="min-w-0"><strong class="block truncate text-xs text-slate-700">{{ item.title }}</strong><small class="mt-1 block text-[10px] text-slate-400">{% if item.kind == 'blog' %}مطلب جدید مجله{% elif item.kind == 'classroom' %}کلاس نزدیک است · {{ item.published_at|date:"Y/m/d H:i" }}{% else %}خبر تازه{% endif %}</small></span>
+                                    <span class="notification-symbol {{ item.kind }}"><i class="fa-solid {% if item.kind == 'blog' %}fa-pen-nib{% elif item.kind == 'classroom' %}fa-chalkboard-user{% elif item.kind == 'quiz' %}fa-clipboard-question{% else %}fa-newspaper{% endif %}"></i></span>
+                                    <span class="min-w-0"><strong class="block truncate text-xs text-slate-700">{{ item.title }}</strong><small class="mt-1 block text-[10px] text-slate-400">{% if item.description %}{{ item.description }}{% elif item.kind == 'blog' %}مطلب جدید مجله{% else %}خبر تازه{% endif %}</small></span>
                                 </a>
                                 {% empty %}
                                 <div class="px-5 py-9 text-center">
@@ -872,8 +873,6 @@
 
         const profileToggle = document.getElementById('profile-toggle');
         const profileMenu = document.getElementById('profile-menu');
-        const notificationToggle = document.getElementById('notification-toggle');
-        const notificationPanel = document.getElementById('notification-panel');
 
         function openSidebar() {
             sidebar.classList.add('is-open');
@@ -918,24 +917,15 @@
 
         profileToggle?.addEventListener('click', function (event) {
             event.stopPropagation();
-            notificationPanel?.classList.add('hidden');
+            document.dispatchEvent(new Event('fanous:close-notifications'));
             profileMenu.classList.toggle('hidden');
             profileToggle.setAttribute('aria-expanded', String(!profileMenu.classList.contains('hidden')));
-        });
-
-        notificationToggle?.addEventListener('click', function (event) {
-            event.stopPropagation();
-            profileMenu?.classList.add('hidden');
-            notificationPanel?.classList.toggle('hidden');
         });
 
         document.addEventListener('click', function (event) {
             if (profileMenu && !profileMenu.contains(event.target) && !profileToggle.contains(event.target)) {
                 profileMenu.classList.add('hidden');
                 profileToggle.setAttribute('aria-expanded', 'false');
-            }
-            if (notificationPanel && !notificationPanel.contains(event.target) && !notificationToggle.contains(event.target)) {
-                notificationPanel.classList.add('hidden');
             }
         });
 
@@ -971,6 +961,8 @@
 
 <script src="{% static 'js/persian-utils.js' %}"></script>
 <script src="{% static 'js/app.js' %}"></script>
+{{ fanous_event_feed|json_script:"fanous-event-feed" }}
+<div id="fanous-event-toasts" aria-live="polite" aria-atomic="false"></div>
 <script src="{% static 'js/fanous-shell.js' %}"></script>
 
 {% block extra_js %}{% endblock %}

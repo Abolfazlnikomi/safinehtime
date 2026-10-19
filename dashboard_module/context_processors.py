@@ -7,7 +7,7 @@ from django.utils.dateparse import parse_datetime
 from auth_module.models import UserRole
 from blog_module.models import Post
 from news_module.models import Article
-from classroom_module.models import OnlineClass
+from .schedule import event_notification, scheduled_events
 
 
 ROLE_COPY = {
@@ -71,15 +71,23 @@ def fanous_shell(request):
     ]
     items.sort(key=lambda item: item["published_at"], reverse=True)
 
-    class_items = []
-    has_class_indicator = False
-    if request.user.role in (UserRole.STUDENT, UserRole.CONSULTANT) or request.user.is_superuser or request.user.role == UserRole.ADMIN:
-        local_now = timezone.localtime(now)
-        tomorrow = now + timedelta(hours=24)
-        upcoming_classes = OnlineClass.objects.filter(is_active=True, starts_at__lte=tomorrow, ends_at__gte=now).order_by("starts_at")[:4]
-        has_class_indicator = OnlineClass.objects.filter(is_active=True, starts_at__date=local_now.date()).exists()
-        class_items = [{"kind": "classroom", "title": f"کلاس: {item.title}", "published_at": item.starts_at, "url": reverse("classroom_module:list")} for item in upcoming_classes]
-        items = class_items + items
+    events = scheduled_events(request.user, now)
+    seen_events = set(request.session.get("fanous_seen_events", []))
+    event_items = [event_notification(event) for event in events
+                   if parse_datetime(event["starts_at"]) <= now + timedelta(hours=24)]
+    for item in items:
+        item["published_at"] = item["published_at"].isoformat()
+        item["unread"] = True
+    for item in event_items:
+        item["unread"] = item["key"] not in seen_events
+    items = event_items + items
+    has_class_indicator = any(event["kind"] == "classroom" for event in events
+                              if timezone.localtime(parse_datetime(event["starts_at"])).date() == timezone.localdate(now))
+    feed = {
+        "events": events, "notifications": items, "now": now.isoformat(),
+        "unread_count": sum(item["unread"] for item in items),
+        "user_id": request.user.pk,
+    }
 
     role_title, role_message = ROLE_COPY.get(
         request.user.role,
@@ -92,9 +100,10 @@ def fanous_shell(request):
         "fanous_day_greeting": _day_greeting(),
         "fanous_role_title": role_title,
         "fanous_role_message": role_message,
-        "fanous_notifications": items[:6],
-        "fanous_unread_count": len(items),
+        "fanous_notifications": items,
+        "fanous_unread_count": feed["unread_count"],
         "fanous_has_class": has_class_indicator,
+        "fanous_event_feed": feed,
     }
 from .models import ModuleAvailability
 

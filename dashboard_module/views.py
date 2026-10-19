@@ -1,3 +1,5 @@
+import json
+
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.db.models import Q
@@ -5,7 +7,9 @@ from django.http import JsonResponse
 from django.urls import reverse
 from django.shortcuts import redirect, render
 from django.utils import timezone
-from django.views.decorators.http import require_POST
+from django.utils.dateparse import parse_datetime
+from django.views.decorators.http import require_GET, require_POST
+from django.views.decorators.cache import never_cache
 
 from auth_module.models import UserRole
 from courses_module.models import ApprovalStatus, CourseEnrollment
@@ -137,6 +141,34 @@ def toggle_module(request, code):
 @login_required
 @require_POST
 def mark_content_notifications_read(request):
-    request.session["fanous_content_seen_at"] = timezone.now().isoformat()
+    try:
+        payload = json.loads(request.body) if request.content_type == "application/json" and request.body else {}
+    except (ValueError, UnicodeDecodeError):
+        return JsonResponse({"ok": False}, status=400)
+    keys = payload.get("event_keys", []) if isinstance(payload, dict) else None
+    if not isinstance(keys, list) or any(not isinstance(key, str) or len(key) > 200 for key in keys) or len(keys) > 100:
+        return JsonResponse({"ok": False}, status=400)
+    seen_at = payload.get("seen_at")
+    if seen_at is not None:
+        if not isinstance(seen_at, str):
+            return JsonResponse({"ok": False}, status=400)
+        try:
+            seen_at = parse_datetime(seen_at)
+        except ValueError:
+            seen_at = None
+        if seen_at is None or timezone.is_naive(seen_at):
+            return JsonResponse({"ok": False}, status=400)
+    seen = request.session.get("fanous_seen_events", [])
+    request.session["fanous_seen_events"] = list(dict.fromkeys(seen + keys))[-200:]
+    request.session["fanous_content_seen_at"] = min(seen_at or timezone.now(), timezone.now()).isoformat()
     request.session.modified = True
     return JsonResponse({"ok": True})
+
+
+@login_required
+@never_cache
+@require_GET
+def notification_feed(request):
+    from .context_processors import fanous_shell
+
+    return JsonResponse(fanous_shell(request)["fanous_event_feed"])

@@ -1,3 +1,6 @@
+from datetime import timedelta
+from unittest.mock import patch
+
 from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
@@ -5,6 +8,9 @@ from django.utils import timezone
 from auth_module.models import User, UserRole
 from blog_module.models import Category as BlogCategory, Post
 from news_module.models import Article, Category as NewsCategory
+from classroom_module.models import OnlineClass
+from quiz_module.models import Quiz
+
 from .models import ModuleAvailability, PresencePeak
 
 
@@ -85,3 +91,114 @@ class FanousDashboardTests(TestCase):
     def test_student_dashboard_does_not_show_admin_presence_panel(self):
         response = self.client.get(reverse("dashboard"))
         self.assertNotContains(response, 'id="live-presence"')
+
+
+class ScheduledDashboardTests(TestCase):
+    def setUp(self):
+        self.now = timezone.now()
+        self.user = User.objects.create_user(username="schedule-student", role=UserRole.STUDENT)
+        self.other = User.objects.create_user(username="schedule-other", role=UserRole.STUDENT)
+        self.client.force_login(self.user)
+        self.online_class = OnlineClass.objects.create(
+            title="کلاس پیش رو", meeting_url="https://example.com/class",
+            starts_at=self.now + timedelta(minutes=10), ends_at=self.now + timedelta(hours=1),
+            created_by=self.other,
+        )
+        self.quiz = Quiz.objects.create(
+            title="آزمون پیش رو", status=Quiz.Status.APPROVED, all_students=True,
+            opens_at=self.now + timedelta(minutes=10), closes_at=self.now + timedelta(hours=1),
+            creator=self.other,
+        )
+
+    def feed(self):
+        response = self.client.get(reverse("notifications_feed"))
+        self.assertEqual(response.status_code, 200)
+        return response.json()
+
+    def test_dashboard_has_both_schedule_panels_and_timers(self):
+        response = self.client.get(reverse("dashboard"))
+        self.assertContains(response, "آزمون‌های پیش رو")
+        self.assertContains(response, "کلاس‌های پیش رو")
+        self.assertContains(response, 'data-event-timer', count=2)
+        self.assertContains(response, 'aria-controls="notification-panel"')
+        self.assertContains(response, 'fanous-event-feed')
+        self.assertContains(response, 'dashboard_module/upcoming-events.css')
+        self.assertContains(response, 'id="dashboard-upcoming"')
+        self.assertContains(response, 'class="schedule-timer-units"', count=2)
+
+    def test_feed_contains_upcoming_events_and_does_not_cache(self):
+        response = self.client.get(reverse("notifications_feed"))
+        data = response.json()
+        self.assertEqual({event["kind"] for event in data["events"]}, {"quiz", "classroom"})
+        self.assertTrue(all(not event["live"] for event in data["events"]))
+        self.assertEqual(data["unread_count"], 2)
+        self.assertIn("no-store", response["Cache-Control"])
+
+    def test_live_timers_identify_event_without_extra_end_deadline(self):
+        self.quiz.opens_at = self.now - timedelta(minutes=5)
+        self.quiz.save()
+        self.online_class.starts_at = self.now - timedelta(minutes=5)
+        self.online_class.save()
+        response = self.client.get(reverse("dashboard"))
+        self.assertContains(response, "زمان باقی‌مانده تا پایان آزمون")
+        self.assertContains(response, "زمان باقی‌مانده تا پایان کلاس")
+        self.assertContains(response, 'data-event-timer', count=2)
+        self.assertNotContains(response, 'class="schedule-end-date"')
+        self.assertNotContains(response, "به وقت تهران")
+
+    def test_read_upcoming_notifications_become_unread_again_at_start(self):
+        initial = self.feed()
+        response = self.client.post(reverse("notifications_read"), {
+            "event_keys": [item["key"] for item in initial["notifications"]],
+            "seen_at": initial["now"],
+        }, content_type="application/json")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(self.feed()["unread_count"], 0)
+        with patch("django.utils.timezone.now", return_value=self.now + timedelta(minutes=11)):
+            started = self.feed()
+        self.assertEqual(started["unread_count"], 2)
+        self.assertTrue(all(event["live"] for event in started["events"]))
+        self.assertTrue(all("شروع شد" in item["title"] for item in started["notifications"]))
+
+    def test_ended_inactive_unapproved_and_paused_events_are_excluded(self):
+        self.online_class.is_active = False
+        self.online_class.save()
+        for status, paused in ((Quiz.Status.DRAFT, False), (Quiz.Status.APPROVED, True)):
+            self.quiz.status = status
+            self.quiz.is_paused = paused
+            self.quiz.save()
+            self.assertEqual(self.feed()["events"], [])
+        self.online_class.is_active = True
+        self.online_class.save()
+        with patch("django.utils.timezone.now", return_value=self.now + timedelta(hours=2)):
+            self.assertEqual(self.feed()["events"], [])
+
+    def test_assigned_quiz_is_not_disclosed_to_other_students(self):
+        self.quiz.all_students = False
+        self.quiz.save()
+        self.quiz.assigned_students.add(self.other)
+        self.assertEqual([event["kind"] for event in self.feed()["events"]], ["classroom"])
+        self.assertNotIn(self.quiz.title, str(self.feed()["notifications"]))
+
+    def test_disabled_quiz_module_is_respected(self):
+        ModuleAvailability.objects.create(code=ModuleAvailability.Code.QUIZZES, is_active=False)
+        self.assertEqual([event["kind"] for event in self.feed()["events"]], ["classroom"])
+
+    def test_consultant_sees_only_their_own_quizzes(self):
+        consultant = User.objects.create_user(username="schedule-consultant", role=UserRole.CONSULTANT)
+        self.client.force_login(consultant)
+        self.assertEqual([event["kind"] for event in self.feed()["events"]], ["classroom"])
+        self.quiz.creator = consultant
+        self.quiz.save()
+        self.assertEqual(len(self.feed()["events"]), 2)
+
+    def test_invalid_read_payload_does_not_clear_notifications(self):
+        for payload in ('{"event_keys":"bad"}', '[1]', '{"seen_at": "bad"}', '{broken'):
+            response = self.client.post(reverse("notifications_read"), payload, content_type="application/json")
+            self.assertEqual(response.status_code, 400)
+        self.assertEqual(self.feed()["unread_count"], 2)
+
+    def test_notification_endpoints_require_authentication(self):
+        self.client.logout()
+        self.assertEqual(self.client.get(reverse("notifications_feed")).status_code, 302)
+        self.assertEqual(self.client.post(reverse("notifications_read")).status_code, 302)

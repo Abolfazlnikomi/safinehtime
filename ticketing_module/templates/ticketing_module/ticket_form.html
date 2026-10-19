@@ -1,26 +1,73 @@
 {% extends "base.html" %}
-{% block title %}ثبت تیکت{% endblock %}
-{% block page_title %}ثبت پرسش جدید{% endblock %}
-{% block breadcrumb %}ثبت تیکت{% endblock %}
+{% load static %}
+{% block title %}ایجاد تیکت جدید{% endblock %}
+{% block page_title %}ایجاد تیکت جدید{% endblock %}
+{% block breadcrumb %}ثبت پرسش{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/ticket-create.css' %}">{% endblock %}
 {% block content %}
-<div class="mx-auto max-w-3xl rounded-2xl border border-slate-200 bg-white p-5 shadow-card sm:p-7">
-    <div class="mb-6 rounded-xl bg-blue-50 p-4 text-sm leading-7 text-blue-800">
-        پرسش‌های فنی برای مسئول منطقه، پرسش‌های روانشناسی برای مشاوران مربوط و پرسش‌های درسی برای مشاوران دارای دسترسی همان درس ارسال می‌شوند. ابتدا ناظر محتوا متن را بررسی می‌کند.
+<div class="ticket-create">
+    <header class="ticket-intro">
+        <div class="ticket-intro-icon"><i class="fa-regular fa-comments" aria-hidden="true"></i></div>
+        <div><span class="ticket-eyebrow">کنارت هستیم</span><h2>هر پرسشی، یک قدم رو به جلو</h2><p>موضوع را انتخاب کن و پرسشت را با ما در میان بگذار.</p></div>
+    </header>
+    <div class="ticket-layout">
+        <form method="post" enctype="multipart/form-data" class="ticket-card" id="ticket-create-form">
+            {% csrf_token %}
+            {% if form.errors %}<div class="ticket-alert" role="alert">لطفاً موارد مشخص‌شده را بررسی و اصلاح کن.{{ form.non_field_errors }}</div>{% endif %}
+            <fieldset class="ticket-section">
+                <legend><span class="ticket-step">۱</span> درباره چه موضوعی می‌پرسی؟</legend>
+                <div class="ticket-types">
+                    {% for choice in form.ticket_type %}
+                    <label class="ticket-type">
+                        {{ choice.tag }}
+                        <span class="ticket-type-body">
+                            {% if choice.data.value == 'LESSON' %}<i class="fa-solid fa-book-open" aria-hidden="true"></i><strong>درسی و آموزشی</strong><small>سؤال‌ها و اشکالات درسی</small>
+                            {% elif choice.data.value == 'TECHNICAL' %}<i class="fa-solid fa-headset" aria-hidden="true"></i><strong>پشتیبانی فنی</strong><small>مشکلات کار با سامانه</small>
+                            {% else %}<i class="fa-solid fa-brain ticket-psychology-icon" aria-hidden="true"></i><strong>روانشناسی و مشاوره</strong><small>راهنمایی و همراهی مشاور</small>{% endif %}
+                        </span>
+                    </label>
+                    {% endfor %}
+                </div>
+                {% for error in form.ticket_type.errors %}<p class="ticket-error">{{ error }}</p>{% endfor %}
+                <div class="ticket-subject ticket-field" id="ticket-subject" {% if form.subject.field.disabled %}hidden{% endif %}>
+                    <label for="{{ form.subject.id_for_label }}">درس مرتبط <span class="ticket-required">*</span></label>
+                    {{ form.subject }}
+                    <p class="ticket-hint">پرسشت به مشاوران همین درس ارجاع داده می‌شود.</p>
+                    {% for error in form.subject.errors %}<p class="ticket-error">{{ error }}</p>{% endfor %}
+                </div>
+            </fieldset>
+            <section class="ticket-section" aria-labelledby="ticket-message-heading">
+                <h3 id="ticket-message-heading"><span class="ticket-step">۲</span> پرسشت را بنویس</h3>
+                <div class="ticket-field">
+                    <label for="{{ form.title.id_for_label }}">عنوان پرسش <span class="ticket-required">*</span></label>
+                    {{ form.title }}
+                    {% for error in form.title.errors %}<p class="ticket-error">{{ error }}</p>{% endfor %}
+                </div>
+                <div class="ticket-field">
+                    <label for="{{ form.content.id_for_label }}">متن پرسش <span class="ticket-required">*</span></label>
+                    {{ form.content }}
+                    {% for error in form.content.errors %}<p class="ticket-error">{{ error }}</p>{% endfor %}
+                </div>
+                <div class="ticket-attachment">
+                    <label for="{{ form.attachment.id_for_label }}"><i class="fa-solid fa-paperclip" aria-hidden="true"></i> فایل پیوست <span>اختیاری</span></label>
+                    <p class="ticket-hint">اگر تصویر یا فایلی به توضیح پرسشت کمک می‌کند، اینجا اضافه کن.</p>
+                    {{ form.attachment }}
+                    {% for error in form.attachment.errors %}<p class="ticket-error">{{ error }}</p>{% endfor %}
+                </div>
+            </section>
+            <footer class="ticket-actions">
+                <button type="submit" class="ticket-submit">ثبت و ارسال تیکت <i class="fa-solid fa-arrow-left" aria-hidden="true"></i></button>
+                <a href="{% url 'ticketing:list' %}" class="ticket-cancel">انصراف</a>
+            </footer>
+        </form>
+        <aside class="ticket-guide" aria-labelledby="ticket-guide-heading">
+            <div class="ticket-guide-icon"><i class="fa-regular fa-lightbulb" aria-hidden="true"></i></div>
+            <h3 id="ticket-guide-heading">برای یک پاسخ بهتر</h3>
+            <p>چند نکته کوچک، کمک می‌کند سریع‌تر به جواب برسی.</p>
+            <ul><li><strong>عنوان کوتاه و روشن</strong><span>خلاصه‌ای از موضوع پرسشت را در عنوان بنویس.</span></li><li><strong>جزئیات کافی</strong><span>بگو کجا به مشکل خوردی و چه راه‌هایی را امتحان کردی.</span></li><li><strong>انتخاب موضوع درست</strong><span>پرسش درسی به مشاور درس، فنی به مسئول منطقه و مشاوره به مشاوران مربوط ارسال می‌شود.</span></li></ul>
+            <div class="ticket-guide-note"><i class="fa-solid fa-shield-halved" aria-hidden="true"></i><span>پیام متنی مستقیم ارسال می‌شود؛ فایل پیوست پس از بررسی ناظر نمایش داده می‌شود.</span></div>
+        </aside>
     </div>
-    <form method="post" enctype="multipart/form-data" class="space-y-5">
-        {% csrf_token %}
-        {% for field in form %}
-            <div>
-                <label class="mb-2 block text-sm font-bold text-slate-700">{{ field.label }}</label>
-                {{ field }}
-                {% for error in field.errors %}<p class="mt-1 text-xs text-red-600">{{ error }}</p>{% endfor %}
-            </div>
-        {% endfor %}
-        {% for error in form.non_field_errors %}<p class="text-sm text-red-600">{{ error }}</p>{% endfor %}
-        <div class="flex gap-3 border-t border-slate-100 pt-5">
-            <button class="rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-blue-700">ثبت و ارسال برای ناظر</button>
-            <a href="{% url 'ticketing:list' %}" class="rounded-xl border border-slate-200 px-5 py-2.5 text-sm font-bold text-slate-600">انصراف</a>
-        </div>
-    </form>
 </div>
 {% endblock %}
+{% block extra_js %}<script src="{% static 'js/ticket-create.js' %}" defer></script>{% endblock %}

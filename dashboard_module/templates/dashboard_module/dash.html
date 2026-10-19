@@ -7,6 +7,7 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'dashboard_module/fanous-dashboard.css' %}">
+<link rel="stylesheet" href="{% static 'dashboard_module/upcoming-events.css' %}">
 <style>
   /* ===================================================
      استایل‌های مدرن نئونی، شیشه‌ای و کاملاً ریسپانسیو موبایل
@@ -280,6 +281,8 @@
       </div>
     </div>
   </section>
+
+  {% include "dashboard_module/_upcoming_events.html" %}
 
   {% if user.role == 'ADMIN' or user.is_superuser %}
   <section class="dash-section presence-glass-panel" id="live-presence" data-presence-url="{{ presence_api_url }}" data-aos="fade-up" aria-labelledby="presence-heading">

@@ -156,3 +156,14 @@ body{background:radial-gradient(circle at 16% 8%,rgba(14,165,233,.07),transparen
 @keyframes fanous-float{50%{transform:translate3d(18px,12px,0) scale(1.08)}}@keyframes fanous-beacon{50%{transform:scale(1.16);opacity:.05}}@keyframes fanous-pulse{50%{box-shadow:0 0 0 8px rgba(34,197,94,0)}}
 @media(max-width:1023px){.app-sidebar{transform:translateX(105%)!important}.app-sidebar.is-open{transform:none!important}.main-wrapper{margin-right:0!important}}
 @media(prefers-reduced-motion:reduce){.fanous-brand::before,.fanous-logo::after,.fanous-status i{animation:none}.sidebar-link,.sidebar-icon,.fanous-notification-button{transition:none}}
+.fanous-notifications { z-index: 70; }
+.notification-symbol.classroom { background: #e0f2fe; color: #0284c7; }
+.notification-symbol.quiz { background: #ede9fe; color: #7c3aed; }
+#fanous-event-toasts { position: fixed; bottom: 24px; inset-inline-end: 24px; z-index: 100; display: grid; gap: 12px; width: min(380px, calc(100vw - 32px)); pointer-events: none; }
+.fanous-event-toast { display: flex; align-items: center; gap: 16px; padding: 18px; border: 1px solid #c4b5fd; border-radius: 18px; background: #faf5fff5; color: #6d28d9; box-shadow: 0 12px 40px #1e293b26; backdrop-filter: blur(18px); pointer-events: auto; }
+.fanous-event-toast.classroom { background: #f0f9fff5; border-color: #7dd3fc; color: #0369a1; }
+.fanous-event-toast a { flex: 1; font-size: 13px; font-weight: 700; line-height: 1.9; }
+.fanous-event-toast button { flex-shrink: 0; width: 32px; height: 32px; border: 0; border-radius: 10px; background: #ffffffb3; font-size: 24px; cursor: pointer; }
+@media (max-width: 480px) {
+  #fanous-event-toasts { bottom: 16px; inset-inline-end: 16px; }
+}

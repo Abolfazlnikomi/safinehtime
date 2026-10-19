@@ -18,6 +18,7 @@ from questions_module.models import Question
 from .forms import BankImportForm, ManualGradeForm, QuizChoiceFormSet, QuizForm, QuizQuestionForm
 from .models import Quiz, QuizAnswer, QuizAttempt, QuizChoice, QuizQuestion
 from .permissions import can_create_quiz, can_edit_quiz_questions, can_manage_quiz, can_review_quiz, can_view_results, is_quiz_admin, trustee_province_ids
+from .permissions import quizzes_for_user as _quiz_queryset_for
 from .services import create_attempt, enqueue_quiz_questions, finalize_attempt, log_tab_event, recalculate_attempt
 
 
@@ -39,30 +40,6 @@ def _student_can_take(user, quiz):
     if quiz.province_id:
         profiles = profiles.filter(field__grade__school__province_id=quiz.province_id)
     return profiles.exists()
-
-
-def _quiz_queryset_for(user):
-    qs = Quiz.objects.select_related("creator", "province", "school", "grade", "field").annotate(attempt_count=Count("attempts", distinct=True))
-    if is_quiz_admin(user):
-        return qs
-    if user.role == UserRole.CONSULTANT:
-        return qs.filter(creator=user)
-    if user.role == UserRole.PROVINCE_TRUSTEE:
-        return qs.filter(province_id__in=trustee_province_ids(user))
-    if user.role == UserRole.STUDENT:
-        profile_fields = user.student_profiles.values_list("field_id", flat=True)
-        profile_grades = user.student_profiles.values_list("field__grade_id", flat=True)
-        profile_schools = user.student_profiles.values_list("field__grade__school_id", flat=True)
-        profile_provinces = user.student_profiles.values_list("field__grade__school__province_id", flat=True)
-        return qs.filter(status=Quiz.Status.APPROVED).filter(
-            Q(all_students=True) | Q(assigned_students=user) |
-            (Q(assigned_students__isnull=True) &
-             (Q(field__isnull=True) | Q(field_id__in=profile_fields)) &
-             (Q(grade__isnull=True) | Q(grade_id__in=profile_grades)) &
-             (Q(school__isnull=True) | Q(school_id__in=profile_schools)) &
-             (Q(province__isnull=True) | Q(province_id__in=profile_provinces)))
-        ).distinct()
-    return qs.none()
 
 
 def _mark_consultant_quiz_changed(user, quiz):
