@@ -311,17 +311,20 @@
     <!-- فوتر -->
     <footer class="mt-16 border-t border-slate-200 bg-white">
       <div class="page-container py-10">
-        <div class="grid gap-8 md:grid-cols-[1.4fr_1fr_1fr]">
+        <div class="grid gap-8 md:grid-cols-[1.4fr_1fr]">
           <!-- معرفی -->
           <div>
-            <div class="mb-4 flex items-center gap-3">
-              <span class="flex h-11 w-11 items-center justify-center bg-transparent">
-                <img src="{% static 'images/fanous-logo.png' %}" alt="لوگوی فانوس" width="44" height="44" class="block h-11 w-11 object-contain" />
-              </span>
-
-              <div>
-                <h2 class="font-bold text-school-navy">مدرسه فانوس</h2>
-                <p class="text-xs text-slate-500">سامانه آموزشی مدرسه</p>
+            <div class="mb-4 flex flex-wrap items-center gap-x-6 gap-y-4">
+              <div class="flex items-center gap-3">
+                <img src="{% static 'images/fanous-logo.png' %}" alt="لوگوی مدرسه فانوس" width="80" height="80" class="block h-20 w-20 shrink-0 object-contain" />
+                <div>
+                  <h2 class="font-bold text-school-navy">مدرسه فانوس</h2>
+                  <p class="text-xs text-slate-500">سامانه آموزشی مدرسه</p>
+                </div>
+              </div>
+              <div class="flex items-center gap-3">
+                <img src="{% static 'images/second-logo.png' %}" alt="لوگوی موسسه فرهنگی سفینه النحاه" width="80" height="80" class="block h-20 w-20 shrink-0 object-contain" />
+                <h2 class="font-bold text-school-navy">موسسه فرهنگی سفینه النحاه</h2>
               </div>
             </div>
 
@@ -366,36 +369,6 @@
             </div>
           </div>
 
-          <!-- ارتباط با سامانه -->
-          <div>
-            <h2 class="mb-4 font-bold text-school-navy">ارتباط با سامانه</h2>
-
-            <div class="grid gap-3 text-sm text-slate-500">
-              <p class="flex items-center gap-2">
-                <i
-                  class="fa-solid fa-location-dot w-4 text-school-blue"
-                  aria-hidden="true"
-                ></i>
-               مدرسه فانوس
-              </p>
-
-              <p class="flex items-center gap-2">
-                <i
-                  class="fa-solid fa-phone w-4 text-school-blue"
-                  aria-hidden="true"
-                ></i>
-                ۰۲۱-۱۲۳۴۵۶۷۸
-              </p>
-
-              <p class="flex items-center gap-2">
-                <i
-                  class="fa-solid fa-envelope w-4 text-school-blue"
-                  aria-hidden="true"
-                ></i>
-                info@safinehdanesh.ir
-              </p>
-            </div>
-          </div>
         </div>
 
         <div

@@ -611,7 +611,7 @@
 
         <!-- Topbar -->
         <header class="fanous-topbar sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-slate-200/80">
-            <div class="flex h-[72px] items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
+            <div class="flex min-h-[72px] flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-6 lg:px-8">
 
                 <!-- Right Side -->
                 <div class="flex min-w-0 items-center gap-3">
@@ -645,8 +645,16 @@
                     </div>
                 </div>
 
+                <div class="order-last flex w-full items-center justify-center gap-3 border-t border-slate-100 pt-3 xl:order-none xl:w-auto xl:border-0 xl:pt-0">
+                    <img src="{% static 'images/second-logo.png' %}"
+                         alt="لوگوی موسسه فرهنگی سفینه النجاه"
+                         width="80" height="80"
+                         class="h-20 w-20 shrink-0 object-contain">
+                    <span class="text-sm font-bold text-slate-800">موسسه فرهنگی سفینه النجاه</span>
+                </div>
+
                 <!-- Left Side -->
-                <div class="flex items-center gap-2 sm:gap-3">
+                <div class="flex shrink-0 items-center gap-2 sm:gap-3">
 
                     <!-- Date -->
                     <div class="hidden items-center gap-2 text-xs font-medium text-slate-400 xl:flex">
