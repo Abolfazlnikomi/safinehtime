@@ -3,6 +3,8 @@ from django.forms import inlineformset_factory
 from ckeditor_uploader.widgets import CKEditorUploadingWidget
 
 from users_module.models import Access, FieldOfStudy, Grade, Subject
+from users_module.curriculum_access import subjects_for_user
+from users_module.school_structure import is_general_grade
 
 from .models import Chapter, Choice, Question, Topic
 
@@ -38,16 +40,14 @@ class QuestionForm(forms.ModelForm):
     def __init__(self, *args, user=None, **kwargs):
         super().__init__(*args, **kwargs)
         subjects = Subject.objects.filter(is_active=True).select_related("field__grade")
-        if user is not None and not user.is_superuser and user.role != "ADMIN":
-            accesses = user.accesses.filter(name=Access.Code.BANK)
-            if not accesses.filter(subject__isnull=True).exists():
-                subjects = subjects.filter(pk__in=accesses.values_list("subject_id", flat=True))
+        subjects = subjects_for_user(user) if user is not None else subjects.none()
         subject_ids = subjects.values_list("id", flat=True)
         fields = FieldOfStudy.objects.filter(is_active=True, subjects__id__in=subject_ids).distinct()
         grades = Grade.objects.filter(is_active=True, fields__id__in=fields.values_list("id", flat=True)).distinct()
         chapters = Chapter.objects.filter(subject_id__in=subject_ids).select_related("subject")
         topics = Topic.objects.filter(is_active=True, chapter__subject_id__in=subject_ids).select_related("chapter__subject")
         self.fields["grade"].queryset = grades.order_by("title")
+        self.fields['grade'].label_from_instance = lambda grade: f'{grade.title} · {grade.school.name}'
         self.fields["field"].queryset = fields.order_by("title")
         self.fields["subject"].queryset = subjects.order_by("title")
         self.fields["chapter"].queryset = chapters.order_by("name")
@@ -57,6 +57,12 @@ class QuestionForm(forms.ModelForm):
             self.initial.update({"topic": self.instance.topic_id, "chapter": chapter.pk,
                                  "subject": chapter.subject_id, "field": chapter.subject.field_id,
                                  "grade": chapter.subject.field.grade_id})
+        grade_id = self.data.get('grade') if self.is_bound else self.initial.get('grade')
+        selected_grade = grades.filter(pk=grade_id).first() if str(grade_id or '').isdecimal() else None
+        if selected_grade and is_general_grade(selected_grade):
+            self.fields['field'].disabled = True
+            self.fields['field'].required = False
+            self.initial['field'] = fields.filter(grade=selected_grade, title='عمومی').values_list('pk', flat=True).first()
 
     def clean(self):
         cleaned = super().clean()
@@ -92,7 +98,7 @@ class ChapterForm(forms.ModelForm):
 class TopicForm(forms.ModelForm):
     class Meta:
         model = Topic
-        fields = ("chapter", "name", "is_active")
+        fields = ("chapter", "lesson", "name", "is_active")
         widgets = {"chapter": forms.Select(attrs=FORM_SELECT), "name": forms.TextInput(attrs={**FORM_CONTROL, "placeholder": "نام مبحث"}), "is_active": forms.CheckboxInput(attrs={"class": "form-check-input"})}
 
 

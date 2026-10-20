@@ -4,7 +4,7 @@ from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import PermissionDenied
 from django.db import transaction
-from django.db.models import Avg, Count, Exists, FloatField, OuterRef, Q, Value
+from django.db.models import Avg, Count, Exists, FloatField, OuterRef, Prefetch, Q, Value
 from django.db.models.functions import Coalesce
 from django.http import FileResponse, Http404, HttpResponseBadRequest
 from django.shortcuts import get_object_or_404, redirect
@@ -16,6 +16,7 @@ from django.views.generic import CreateView, DeleteView, DetailView, ListView, U
 
 from auth_module.models import Student, UserRole
 from dashboard_module.location_filters import location_options
+from users_module.curriculum_access import subjects_for_user
 
 from .forms import (
     CourseCreateForm,
@@ -35,7 +36,7 @@ from .models import (
 
 def course_cards(queryset, user):
     enrollments = CourseEnrollment.objects.filter(course=OuterRef("pk"), student=user)
-    return queryset.select_related("author").prefetch_related("subjects").annotate(
+    return queryset.select_related("author").prefetch_related(Prefetch('subjects', queryset=subjects_for_user(user, 'course'))).annotate(
         rating_average=Coalesce(Avg("ratings__value"), Value(0.0), output_field=FloatField()),
         rating_count=Count("ratings", distinct=True),
         is_enrolled=Exists(enrollments),
@@ -53,11 +54,11 @@ def courses_for_region(queryset, province_id=None, school_id=None):
 def courses_for_student(queryset, user):
     student = Student.objects.filter(user=user).select_related("field__grade__school").first()
     if not student:
-        return queryset.filter(all_provinces_allowed=True, allowed_cities__isnull=True)
+        return queryset.none()
     queryset = courses_for_region(queryset, student.field.grade.school.province_id, student.field.grade.school_id)
     return queryset.filter(Q(all_fields_allowed=True) | Q(allowed_fields=student.field)).filter(
         Q(all_grades_allowed=True) | Q(allowed_grades=student.field.grade)
-    ).distinct()
+    ).filter(Q(subjects__isnull=True) | Q(subjects__field=student.field)).distinct()
 
 
 class RoleRequiredMixin(LoginRequiredMixin):
@@ -182,10 +183,12 @@ class CourseDetailView(LoginRequiredMixin, DetailView):
         user = self.request.user
         user_role = getattr(user, "role", None)
         if user.is_superuser or user_role in (UserRole.PROVINCE_TRUSTEE, UserRole.ADMIN):
-            return Course.objects.all()
-        if user_role == UserRole.CONSULTANT:
-            return Course.objects.filter(Q(author=user) | Q(pk__in=Course.published.all()))
-        return courses_for_student(Course.published.all(), user)
+            queryset = Course.objects.all()
+        elif user_role == UserRole.CONSULTANT:
+            queryset = Course.objects.filter(Q(author=user) | Q(pk__in=Course.published.all()))
+        else:
+            queryset = courses_for_student(Course.published.all(), user)
+        return queryset.prefetch_related(Prefetch('subjects', queryset=subjects_for_user(user, 'course')))
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)

@@ -8,6 +8,9 @@ from django.forms import inlineformset_factory
 from django.utils import timezone
 
 from auth_module.models import UserRole
+from users_module.curriculum_access import grades_for_user, subjects_for_user
+from users_module.models import FieldOfStudy
+from users_module.school_structure import is_general_grade
 # خط ۱۱ را به این شکل تغییر بده:
 from questions_module.models import Question, Topic
 
@@ -44,8 +47,15 @@ class QuizForm(forms.ModelForm):
             "publish_results": forms.CheckboxInput(),
         }
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, user=None, **kwargs):
         super().__init__(*args, **kwargs)
+        self.fields['grade'].queryset = grades_for_user(user)
+        self.fields['field'].queryset = FieldOfStudy.objects.filter(grade__in=grades_for_user(user), is_active=True)
+        grade_id = self.data.get('grade') if self.is_bound else self.instance.grade_id
+        selected_grade = self.fields['grade'].queryset.filter(pk=grade_id).first() if str(grade_id or '').isdecimal() else None
+        if selected_grade and is_general_grade(selected_grade):
+            self.fields['field'].disabled = True
+            self.initial['field'] = None
         for field in self.fields.values():
             if not isinstance(field.widget, (forms.CheckboxInput, CKEditorUploadingWidget)):
                 field.widget.attrs["class"] = CONTROL
@@ -105,9 +115,9 @@ class QuizQuestionForm(forms.ModelForm):
         fields = ["question_type", "bank_topic", "text", "image", "explanation", "explanation_image", "points", "submit_to_bank"]
         widgets = {"text": CKEditorUploadingWidget(), "explanation": CKEditorUploadingWidget()}
 
-    def __init__(self, *args, quiz=None, **kwargs):
+    def __init__(self, *args, quiz=None, user=None, **kwargs):
         super().__init__(*args, **kwargs)
-        topics = Topic.objects.filter(is_active=True).select_related("chapter__subject")
+        topics = Topic.objects.filter(is_active=True, chapter__subject__in=subjects_for_user(user, 'quiz')).select_related("chapter__subject", "lesson")
         if quiz is not None:
             if quiz.field_id:
                 topics = topics.filter(chapter__subject__field_id=quiz.field_id)
@@ -143,9 +153,15 @@ QuizChoiceFormSet = inlineformset_factory(
 class BankImportForm(forms.Form):
     questions = forms.ModelMultipleChoiceField(queryset=Question.objects.none(), widget=forms.CheckboxSelectMultiple)
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, user=None, quiz=None, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields["questions"].queryset = Question.objects.filter(is_active=True, approval_status=Question.ApprovalStatus.APPROVED).select_related("topic__chapter__subject").prefetch_related("choices")
+        subjects = subjects_for_user(user, 'quiz')
+        if quiz is not None:
+            if quiz.field_id:
+                subjects = subjects.filter(field_id=quiz.field_id)
+            elif quiz.grade_id:
+                subjects = subjects.filter(field__grade_id=quiz.grade_id)
+        self.fields["questions"].queryset = Question.objects.filter(is_active=True, approval_status=Question.ApprovalStatus.APPROVED, topic__is_active=True, topic__chapter__subject__in=subjects).select_related("topic__chapter__subject").prefetch_related("choices")
 
 
 class ManualGradeForm(forms.Form):

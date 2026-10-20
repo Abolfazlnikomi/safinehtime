@@ -14,6 +14,7 @@ from django.views.decorators.http import require_http_methods, require_POST
 from auth_module.models import UserRole
 from auth_module.models import ProvinceTrustee
 from users_module.models import Access, FieldOfStudy, Grade, Subject
+from users_module.curriculum_access import subjects_for_user
 
 from .models import (
     Chapter,
@@ -81,13 +82,15 @@ def _parse_integer_list(values):
     return result
 
 
-def _usable_question_qs(question_type=Question.Type.MCQ):
+def _usable_question_qs(question_type=Question.Type.MCQ, user=None):
     """سؤال‌های تأییدشده و قابل استفاده برای نوع انتخابی."""
     qs = Question.objects.filter(
         is_active=True, question_type=question_type,
         approval_status=Question.ApprovalStatus.APPROVED,
         topic__is_active=True,
     )
+    if user is not None:
+        qs = qs.filter(topic__chapter__subject__in=subjects_for_user(user))
     if question_type == Question.Type.MCQ:
         qs = qs.annotate(
             choice_count=Count("choices", distinct=True),
@@ -98,10 +101,10 @@ def _usable_question_qs(question_type=Question.Type.MCQ):
     return qs
 
 
-def _usable_chapters(course_ids=None, question_type=Question.Type.MCQ):
+def _usable_chapters(course_ids=None, question_type=Question.Type.MCQ, user=None):
     """فصل‌هایی که حداقل یک سؤال معتبر از نوع انتخابی دارند."""
     valid_chapter_ids = (
-        _usable_question_qs(question_type)
+        _usable_question_qs(question_type, user=user)
         .values_list("chapter_id", flat=True)
         .distinct()
     )
@@ -114,23 +117,23 @@ def _usable_chapters(course_ids=None, question_type=Question.Type.MCQ):
     return chapters.filter(subject__is_active=True).select_related("subject").order_by("subject__title", "name", "id")
 
 
-def _usable_topics(course_ids=None, question_type=Question.Type.MCQ):
-    valid_topic_ids = _usable_question_qs(question_type).values_list("topic_id", flat=True).distinct()
+def _usable_topics(course_ids=None, question_type=Question.Type.MCQ, user=None):
+    valid_topic_ids = _usable_question_qs(question_type, user=user).values_list("topic_id", flat=True).distinct()
     topics = Topic.objects.filter(id__in=valid_topic_ids, is_active=True, chapter__subject__is_active=True)
     course_ids = _parse_integer_list(course_ids)
     if course_ids:
         topics = topics.filter(chapter__subject_id__in=course_ids)
-    return topics.select_related("chapter__subject").order_by("chapter__subject__title", "chapter__name", "name")
+    return topics.select_related("chapter__subject", "lesson").order_by("chapter__subject__title", "chapter__name", "lesson__name", "name")
 
 
-def _usable_courses(question_type=Question.Type.MCQ):
+def _usable_courses(question_type=Question.Type.MCQ, user=None):
     """درس‌هایی که فصل دارای سوال معتبر دارند."""
     valid_course_ids = (
-        _usable_chapters(question_type=question_type)
+        _usable_chapters(question_type=question_type, user=user)
         .values_list("subject_id", flat=True)
         .distinct()
     )
-    return Subject.objects.filter(id__in=valid_course_ids, is_active=True).order_by("title", "id")
+    return Subject.objects.filter(id__in=valid_course_ids, is_active=True).select_related('field__grade__school').order_by("title", "id")
 
 
 def _get_wizard_mode(request):
@@ -195,11 +198,11 @@ def _difficulty_options(selected_counts):
     ]
 
 
-def _select_questions(topic_ids, difficulty_counts, question_type):
+def _select_questions(topic_ids, difficulty_counts, question_type, user=None):
     questions = []
     for difficulty, requested_count in difficulty_counts.items():
         selected = list(
-            _usable_question_qs(question_type)
+            _usable_question_qs(question_type, user=user)
             .filter(topic_id__in=topic_ids, difficulty=difficulty)
             .prefetch_related("choices")
             .order_by("?")[:requested_count]
@@ -227,11 +230,11 @@ def _can_manage_questions(user):
 
 
 def _can_manage_subject(user, subject_id):
-    return user.is_superuser or user.role == UserRole.ADMIN or user.has_project_access(Access.Code.BANK, subject_id)
+    return subjects_for_user(user).filter(pk=subject_id).exists()
 
 
 def _is_curriculum_admin(user):
-    return user.is_authenticated and (user.is_superuser or user.role == UserRole.ADMIN)
+    return user.is_authenticated and user.is_superuser
 
 
 def _can_create_chapter(user, subject_id=None):
@@ -254,6 +257,8 @@ def _can_view_question_overview(user):
 def _question_overview(user=None):
     """گزارش وضعیت سؤال‌ها؛ برای مشاور فقط سؤال‌های خودش را برمی‌گرداند."""
     base_qs = Question.objects.all()
+    if user is not None and not user.is_superuser:
+        base_qs = base_qs.filter(chapter__subject__in=subjects_for_user(user))
     if user is not None and user.role == UserRole.CONSULTANT and not user.is_superuser:
         base_qs = base_qs.filter(creator=user)
     questions = base_qs.select_related(
@@ -277,8 +282,10 @@ def _question_requires_approval(user):
 
 
 def _trustee_can_review(user, question):
-    if user.is_superuser or user.role == UserRole.ADMIN:
+    if user.is_superuser:
         return True
+    if user.role == UserRole.ADMIN:
+        return bool(question.chapter_id and _can_manage_subject(user, question.chapter.subject_id))
     if user.role != UserRole.PROVINCE_TRUSTEE or not question.chapter_id:
         return False
     province_id = question.chapter.subject.field.grade.school.province_id
@@ -289,15 +296,17 @@ def _pending_questions_for_trustee(user):
     qs = Question.objects.filter(
         approval_status=Question.ApprovalStatus.PENDING,
     ).select_related('chapter__subject__field__grade__school').prefetch_related('choices')
-    if user.is_superuser or user.role == UserRole.ADMIN:
+    if user.is_superuser:
         return qs
+    if user.role == UserRole.ADMIN:
+        return qs.filter(chapter__subject__in=subjects_for_user(user))
     province_ids = ProvinceTrustee.objects.filter(user=user).values_list('province_id', flat=True)
     return qs.filter(chapter__subject__field__grade__school__province_id__in=province_ids)
 
 
 def _performance_data(user, course_ids=None):
     """خلاصه عملکرد ذخیره‌شده کاربر به تفکیک درس."""
-    courses = Subject.objects.all()
+    courses = subjects_for_user(user)
     if course_ids:
         courses = courses.filter(id__in=course_ids)
 
@@ -715,7 +724,7 @@ def select_courses(request):
         messages.warning(request, "ابتدا حالت تمرین یا آزمون را انتخاب کنید.")
         return redirect(f"{APP_NS}:choose_mode")
 
-    courses = _usable_courses(question_type)
+    courses = _usable_courses(question_type, user=request.user)
     selected_course_ids = _get_wizard_course_ids(request)
 
     if request.method == "POST":
@@ -761,8 +770,8 @@ def select_chapters(request):
         messages.warning(request, "ابتدا باید درس(های) مورد نظرتان را انتخاب کنید.")
         return redirect(f"{APP_NS}:select_courses")
 
-    chapters = _usable_chapters(course_ids, question_type)
-    topics = _usable_topics(course_ids, question_type)
+    chapters = _usable_chapters(course_ids, question_type, user=request.user)
+    topics = _usable_topics(course_ids, question_type, user=request.user)
     selected_topic_ids = _get_wizard_topic_ids(request)
     topics_by_chapter = {}
     for topic in topics:
@@ -873,7 +882,12 @@ def start_practice(request):
         messages.warning(request, "لطفاً فرآیند انتخاب را کامل کنید.")
         return redirect(f"{APP_NS}:choose_mode")
 
-    questions, missing_difficulty = _select_questions(topic_ids, difficulty_counts, question_type)
+    allowed_topics = _usable_topics(question_type=question_type, user=request.user)
+    if set(topic_ids) != set(allowed_topics.filter(pk__in=topic_ids).values_list('pk', flat=True)):
+        _reset_wizard(request)
+        return redirect(f"{APP_NS}:select_courses")
+    chapter_ids = list(allowed_topics.filter(pk__in=topic_ids).values_list('chapter_id', flat=True).distinct())
+    questions, missing_difficulty = _select_questions(topic_ids, difficulty_counts, question_type, user=request.user)
 
     if not questions:
         label = dict(Difficulty.choices).get(missing_difficulty, "انتخاب‌شده")
@@ -1110,7 +1124,12 @@ def start_exam(request):
         messages.warning(request, "لطفاً ابتدا تنظیمات آزمون را تکمیل کنید.")
         return redirect(f"{APP_NS}:choose_mode")
 
-    questions, missing_difficulty = _select_questions(topic_ids, difficulty_counts, question_type)
+    allowed_topics = _usable_topics(question_type=question_type, user=request.user)
+    if set(topic_ids) != set(allowed_topics.filter(pk__in=topic_ids).values_list('pk', flat=True)):
+        _reset_wizard(request)
+        return redirect(f"{APP_NS}:select_courses")
+    chapter_ids = list(allowed_topics.filter(pk__in=topic_ids).values_list('chapter_id', flat=True).distinct())
+    questions, missing_difficulty = _select_questions(topic_ids, difficulty_counts, question_type, user=request.user)
 
     if not questions:
         label = dict(Difficulty.choices).get(missing_difficulty, "انتخاب‌شده")

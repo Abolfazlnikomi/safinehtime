@@ -574,6 +574,12 @@
                 {% endif %}
             </div>
 
+            {% if user.is_superuser or user.role == 'ADMIN' or user.role == 'PROVINCE_TRUSTEE' %}
+            <a href="{% url 'school_structure' %}" class="sidebar-link flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold {% if 'school-structure' in request.path %}active{% else %}text-slate-600{% endif %}">
+                <span class="sidebar-icon text-cyan-600 bg-cyan-50"><i class="fa-solid fa-school"></i></span>
+                <span>ساختار مدرسه</span>
+            </a>
+            {% endif %}
             <!-- ۷. گزارش‌ها و تنظیمات سیستم -->
             {% if user.is_authenticated and user.role == 'ADMIN' or user.is_superuser or user.user_type == "support" %}
             <div class="space-y-1">
@@ -973,6 +979,11 @@
 <div id="fanous-event-toasts" aria-live="polite" aria-atomic="false"></div>
 <script src="{% static 'js/fanous-shell.js' %}"></script>
 
+{% if user.is_authenticated %}
+{% load curriculum %}{% curriculum_selection_data as curriculum_selection %}
+{{ curriculum_selection|json_script:'curriculum-selection-data' }}
+<script src="{% static 'js/grade-field-selection.js' %}" defer></script>
+{% endif %}
 {% block extra_js %}{% endblock %}
 
 </body>

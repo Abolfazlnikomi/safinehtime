@@ -108,7 +108,7 @@
                   <label class="topic-item cursor-pointer block select-none">
                     <input type="checkbox" name="topics" value="{{ topic.pk }}" class="topic-input sr-only" {% if topic.pk in selected_topic_ids %}checked{% endif %}>
                     <div class="custom-checkbox flex items-center justify-between rounded-xl border border-slate-200 bg-white px-3.5 py-2.5">
-                      <span class="topic-title text-xs font-medium text-slate-700 line-clamp-1">{{ topic.name }}</span>
+                      <span class="topic-title text-xs font-medium text-slate-700 line-clamp-1">{% if topic.lesson_id %}{{ topic.lesson.name }} · {% endif %}{{ topic.name }}</span>
                       <div class="check-indicator flex h-4 w-4 shrink-0 items-center justify-center rounded-md border border-slate-300 bg-white text-[9px] text-transparent transition-all">
                         <i class="fa-solid fa-check"></i>
                       </div>

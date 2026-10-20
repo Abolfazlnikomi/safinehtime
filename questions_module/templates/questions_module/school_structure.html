@@ -1,0 +1,51 @@
+{% extends 'base.html' %}{% load static %}
+{% block title %}ساختار مدرسه{% endblock %}
+{% block page_title %}ساختار مدرسه{% endblock %}
+{% block breadcrumb %}مدیریت یکپارچه آموزش{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/school-structure.css' %}">{% endblock %}
+{% block content %}
+<div class="structure-shell" dir="rtl">
+  <header class="structure-hero structure-glass">
+    <div><span class="structure-eyebrow"><i class="fa-solid fa-sparkles" aria-hidden="true"></i> مدرسه، با یک ساختار هماهنگ</span><h1>یک نقشه برای تمام یادگیری‌ها</h1><p>از پایه و رشته تا کتاب، فصل، درس و مبحث؛ یک‌بار وارد کنید و در بانک سؤال و دوره‌ها استفاده کنید.</p><div class="structure-pills"><span>پایه</span><b>←</b><span>رشته</span><b>←</b><span>کتاب</span><b>←</b><span>فصل</span><b>←</b><span>درس</span><b>←</b><span>مبحث</span></div></div>
+    <span class="structure-hero-icon" aria-hidden="true"><i class="fa-solid fa-layer-group"></i></span>
+  </header>
+  <div class="structure-stats">
+    <div class="structure-glass" style="--accent:#6366f1"><i class="fa-solid fa-book-open" aria-hidden="true"></i><strong>{{ stats.books }}</strong><span>کتاب</span></div>
+    <div class="structure-glass" style="--accent:#0891b2"><i class="fa-solid fa-folder-open" aria-hidden="true"></i><strong>{{ stats.chapters }}</strong><span>فصل</span></div>
+    <div class="structure-glass" style="--accent:#db2777"><i class="fa-solid fa-bookmark" aria-hidden="true"></i><strong>{{ stats.lessons }}</strong><span>درس کتاب</span></div>
+    <div class="structure-glass" style="--accent:#059669"><i class="fa-solid fa-diagram-project" aria-hidden="true"></i><strong>{{ stats.topics }}</strong><span>مبحث فعال</span></div>
+  </div>
+  <section class="structure-glass structure-panel">
+    <div class="structure-heading"><span class="structure-step">۰۱</span><div><h2>ورود هوشمند اطلاعات</h2><p>دو فایل را هم‌زمان یا جداگانه بارگذاری کنید؛ همیشه ابتدا کتاب‌ها پردازش می‌شوند.</p></div></div>
+    <form method="post" enctype="multipart/form-data" id="structure-upload">{% csrf_token %}<input type="hidden" name="action" value="import">
+      {{ upload_form.non_field_errors }}
+      <div class="structure-school"><label for="{{ upload_form.school.id_for_label }}">{{ upload_form.school.label }}</label>{{ upload_form.school }}{{ upload_form.school.errors }}<small>با انتخاب «همه موارد»، اطلاعات برای تمام مدارس مجاز شما ثبت می‌شود؛ ثبت دو فایل برای همه مدارس یکپارچه و بدون ذخیره ناقص است.</small></div>
+      <div class="structure-upload-grid">
+        <div class="structure-drop" style="--accent:#6366f1"><i class="fa-solid fa-file-excel" aria-hidden="true"></i><h3>اکسل اول؛ کتاب و فصل‌های هر پایه</h3><p>پایه · رشته · کتاب · فصل</p><label for="{{ upload_form.books.id_for_label }}">انتخاب فایل اول</label>{{ upload_form.books }}{{ upload_form.books.errors }}<a href="?template=books"><i class="fa-solid fa-download" aria-hidden="true"></i> دریافت اکسل نمونه اول</a></div>
+        <div class="structure-drop" style="--accent:#db2777"><i class="fa-solid fa-file-excel" aria-hidden="true"></i><h3>اکسل دوم؛ درس‌ها و مباحث فصل</h3><p>فصل · درس · مبحث</p><label for="{{ upload_form.topics.id_for_label }}">انتخاب فایل دوم</label>{{ upload_form.topics }}{{ upload_form.topics.errors }}<a href="?template=topics"><i class="fa-solid fa-download" aria-hidden="true"></i> دریافت اکسل نمونه دوم</a></div>
+      </div>
+      <div class="structure-note"><i class="fa-solid fa-shield-halved" aria-hidden="true"></i><p>فقط xlsx، حداکثر ۵ مگابایت و ۱۰۰۰۰ ردیف در هر فایل. ردیف تکراری دوباره ساخته نمی‌شود. اگر حتی یک ردیف خطا داشته باشد، هیچ‌کدام از تغییرات دو فایل ذخیره نمی‌شود.</p></div>
+      <details class="structure-help"><summary>راهنمای فصل‌های هم‌نام و دسترسی‌ها</summary><p>فایل اول پایه، رشته، کتاب و فصل را ثبت می‌کند. برای پایه‌های پنجم تا نهم ستون رشته را خالی بگذارید؛ برای دهم تا دوازدهم فقط ریاضی، تجربی یا انسانی مجاز است. فایل دوم فقط فصل، درس و مبحث را لازم دارد؛ ستون‌های اختیاری پایه و رشته برای تشخیص فصل‌های هم‌نام‌اند و کتاب و شناسه کتاب لازم نیست. اگر دو فصل در یک پایه و رشته نام یکسان دارند، نام فصل را در فایل اول متمایز کنید تا به کتاب اشتباه متصل نشوند.</p><p>نمونه‌ها یک ردیف مثال دارند؛ آن را با اطلاعات خود جایگزین کنید. هر ردیف فایل دوم یک مبحث است. دانش‌آموز فقط محتوای پایه و رشته خود، مشاور فقط پایه‌های تخصیص‌یافته با مجوز ماژول، مسئول منطقه ساختار منطقه خود و ادمین کل همه ساختار را می‌بیند.</p></details>
+      <button type="submit" class="structure-button" id="structure-submit"><i class="fa-solid fa-cloud-arrow-up" aria-hidden="true"></i> بررسی و ثبت ساختار</button>
+    </form>
+  </section>
+  {% if result %}
+  <section class="structure-glass structure-panel" aria-live="polite">
+    <h2>{% if result.errors %}نیاز به اصلاح فایل{% else %}ساختار با موفقیت ثبت شد{% endif %}</h2>
+    {% if result.errors %}
+    <p class="structure-error-note">هیچ تغییری ذخیره نشد. حداکثر ۱۰۰ خطای اول نمایش داده می‌شود.</p>
+    <div class="structure-table-wrap"><table><thead><tr><th>فایل</th><th>ردیف</th><th>شرح خطا</th></tr></thead><tbody>{% for error in result.errors %}<tr><td>{% if error.file == 'books' %}اول{% else %}دوم{% endif %}</td><td>{{ error.row }}</td><td>{{ error.message }}</td></tr>{% endfor %}</tbody></table></div>
+    {% else %}
+    <div class="structure-success">{{ result.rows }} ردیف پردازش شد · {{ result.created }} مورد جدید · {{ result.reused }} مورد موجود بدون تکرار استفاده شد</div>
+    {% endif %}
+  </section>
+  {% endif %}
+  <section class="structure-glass structure-panel">
+    <div class="structure-heading"><span class="structure-step">۰۲</span><div><h2>کتابخانه ساختار مدرسه</h2><p>کتاب‌های محدوده دسترسی شما؛ برای مشاهده مسیر هر کتاب آن را باز کنید. حداکثر ۲۰۰ کتاب نمایش داده می‌شود.</p></div></div>
+    <form method="get" class="structure-filter"><label for="structure-grade">پایه تحصیلی</label><select name="grade" id="structure-grade" class="structure-input"><option value="">تمام پایه‌های مجاز</option>{% for grade in grades %}<option value="{{ grade.pk }}" {% if selected_grade == grade.pk|stringformat:'s' %}selected{% endif %}>{{ grade.title }} · {{ grade.school.name }}</option>{% endfor %}</select><button class="structure-button" type="submit">نمایش</button></form>
+    <div class="structure-library">{% for book in books %}<details class="structure-book"><summary><span class="structure-book-icon"><i class="fa-solid fa-book" aria-hidden="true"></i></span><span><strong>{{ book.title }}</strong><small>{{ book.field.grade.school.name }} · {{ book.field.grade.title }} · {{ book.field.title }}</small></span><span class="structure-book-id">شناسه {{ book.pk }}<small>{{ book.chapter_count }} فصل</small></span></summary><div class="structure-tree">{% for chapter in book.question_chapters.all %}<details><summary>{{ chapter.name }}</summary><div>{% for lesson in chapter.lessons.all %}<details><summary>{{ lesson.name }}</summary><ul>{% for topic in lesson.topics.all %}<li>{{ topic.name }}{% if not topic.is_active %} (غیرفعال){% endif %}</li>{% empty %}<li>هنوز مبحثی ثبت نشده</li>{% endfor %}</ul></details>{% empty %}<p>هنوز درسی ثبت نشده است؛ فایل دوم را وارد کنید.</p>{% endfor %}{% for topic in chapter.topics.all %}{% if not topic.lesson_id %}<p>{{ topic.name }} · مبحث قدیمی بدون درس</p>{% endif %}{% endfor %}</div></details>{% empty %}<p>برای تکمیل فصل‌ها و مباحث، فایل دوم را وارد کنید.</p>{% endfor %}</div></details>{% empty %}<div class="structure-empty"><i class="fa-solid fa-seedling" aria-hidden="true"></i><h3>ساختار شما از اینجا شروع می‌شود</h3><p>کتابی در این محدوده موجود نیست. فایل اول را بارگذاری کنید یا از ادمین کل بخواهید پایه‌های مجازتان را تعیین کند.</p></div>{% endfor %}</div>
+  </section>
+  {% if scope_form %}<section class="structure-glass structure-panel"><div class="structure-heading"><span class="structure-step">۰۳</span><div><h2>تخصیص پایه به مشاور</h2><p>فقط ادمین کل می‌تواند محدوده پایه‌های مشاوران را تغییر دهد. ذخیره، جایگزین تخصیص قبلی می‌شود؛ انتخاب خالی یعنی بدون دسترسی آموزشی. مجوز بخش‌های سامانه مستقل از تخصیص پایه است.</p></div></div><form method="post">{% csrf_token %}<input type="hidden" name="action" value="scope">{{ scope_form.as_p }}<button class="structure-button" type="submit">ذخیره محدوده مشاور</button></form><a class="structure-manual" href="{% url 'questions_module:curriculum_manage' %}">مدیریت دستی پایه، رشته، کتاب و فصل‌ها ←</a></section>{% endif %}
+</div>
+{% endblock %}
+{% block extra_js %}{{ scope_assignments|json_script:'structure-scope-assignments' }}<script src="{% static 'js/school-structure.js' %}" defer></script>{% endblock %}

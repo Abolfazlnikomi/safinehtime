@@ -1,14 +1,42 @@
 from django.contrib import admin
 from django import forms
 from users_module.models import Access
+from users_module.curriculum_access import subjects_for_user
 from .models import (
     Chapter, Question, Choice,
-    PracticeSession, ExamSession, PracticeAnswer, ExamAnswer, Category, Topic
+    PracticeSession, ExamSession, PracticeAnswer, ExamAnswer, Category, Topic, Lesson
 )
 
 
 def has_access(user, code, subject=None):
-    return user.is_authenticated and user.has_project_access(code, subject)
+    if subject is not None:
+        return subjects_for_user(user, code).filter(pk=subject.pk).exists()
+    return user.is_authenticated and (user.is_superuser or subjects_for_user(user, code).exists())
+
+
+class ChapterScopeAdminMixin:
+    subject_path = 'chapter__subject'
+
+    def get_list_filter(self, request):
+        filters = super().get_list_filter(request)
+        if request.user.is_superuser:
+            return filters
+        return tuple(name for name in filters if isinstance(name, str) and '__' not in name and name not in {'subject', 'chapter', 'topic'})
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).filter(**{f'{self.subject_path}__in': subjects_for_user(request.user)})
+
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        subjects = subjects_for_user(request.user)
+        if db_field.name == 'subject':
+            kwargs['queryset'] = subjects
+        elif db_field.name == 'chapter':
+            kwargs['queryset'] = Chapter.objects.filter(subject__in=subjects)
+        elif db_field.name == 'topic':
+            kwargs['queryset'] = Topic.objects.filter(chapter__subject__in=subjects)
+        elif db_field.name == 'lesson':
+            kwargs['queryset'] = Lesson.objects.filter(chapter__subject__in=subjects)
+        return super().formfield_for_foreignkey(db_field, request, **kwargs)
 
 
 # ─────────────────────────────────────────────────────────────
@@ -30,7 +58,8 @@ class CategoryAdmin(admin.ModelAdmin):
 # ۲. مدیریت درس‌ها و فصل‌ها
 # ─────────────────────────────────────────────────────────────
 @admin.register(Chapter)
-class ChapterAdmin(admin.ModelAdmin):
+class ChapterAdmin(ChapterScopeAdminMixin, admin.ModelAdmin):
+    subject_path = 'subject'
     fields = ("subject", "name")
     list_display = ("name", "subject", "questions_count")
     list_filter = ("subject",)
@@ -64,27 +93,18 @@ class ChapterAdmin(admin.ModelAdmin):
         return self.has_change_permission(request, obj)
 
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
-        if db_field.name == 'subject' and not request.user.is_superuser:
-            accesses = request.user.accesses.filter(name=Access.Code.BANK)
-            if not accesses.filter(subject__isnull=True).exists():
-                kwargs['queryset'] = db_field.remote_field.model.objects.filter(
-                    pk__in=accesses.values_list('subject_id', flat=True)
-                )
+        if db_field.name == 'subject':
+            kwargs['queryset'] = subjects_for_user(request.user)
         return super().formfield_for_foreignkey(db_field, request, **kwargs)
 
     def get_queryset(self, request):
         queryset = super().get_queryset(request)
-        if request.user.is_superuser:
-            return queryset
-        accesses = request.user.accesses.filter(name=Access.Code.BANK)
-        if accesses.filter(subject__isnull=True).exists():
-            return queryset
-        return queryset.filter(subject_id__in=accesses.values_list('subject_id', flat=True))
+        return queryset.filter(subject__in=subjects_for_user(request.user))
 
 
 @admin.register(Topic)
-class TopicAdmin(admin.ModelAdmin):
-    list_display = ('name', 'chapter', 'is_active')
+class TopicAdmin(ChapterScopeAdminMixin, admin.ModelAdmin):
+    list_display = ('name', 'chapter', 'lesson', 'is_active')
     list_filter = ('is_active', 'chapter__subject')
     search_fields = ('name', 'chapter__name', 'chapter__subject__title')
 
@@ -99,6 +119,15 @@ class TopicAdmin(admin.ModelAdmin):
 
     def has_delete_permission(self, request, obj=None):
         return self.has_module_permission(request)
+
+
+@admin.register(Lesson)
+class LessonAdmin(ChapterScopeAdminMixin, admin.ModelAdmin):
+    list_display = ('name', 'chapter')
+    search_fields = ('name', 'chapter__name', 'chapter__subject__title')
+
+    def has_module_permission(self, request):
+        return request.user.is_superuser or request.user.role == 'ADMIN'
 
 
 # ─────────────────────────────────────────────────────────────
@@ -149,7 +178,7 @@ class ChoiceInline(admin.TabularInline):
 # ۴. مدیریت سوالات
 # ─────────────────────────────────────────────────────────────
 @admin.register(Question)
-class QuestionAdmin(admin.ModelAdmin):
+class QuestionAdmin(ChapterScopeAdminMixin, admin.ModelAdmin):
     list_display = (
         "short_text", 
         "creator",
@@ -222,23 +251,13 @@ class QuestionAdmin(admin.ModelAdmin):
 
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
         if db_field.name == 'chapter':
-            chapters = Chapter.objects.filter(subject__is_active=True)
-            accesses = request.user.accesses.filter(name=Access.Code.BANK)
-            if not request.user.is_superuser and not accesses.filter(subject__isnull=True).exists():
-                chapters = chapters.filter(subject_id__in=accesses.values_list('subject_id', flat=True))
+            chapters = Chapter.objects.filter(subject__in=subjects_for_user(request.user))
             kwargs['queryset'] = chapters.select_related('subject')
         return super().formfield_for_foreignkey(db_field, request, **kwargs)
 
     def get_queryset(self, request):
         queryset = super().get_queryset(request)
-        if request.user.is_superuser:
-            return queryset
-        accesses = request.user.accesses.filter(name=Access.Code.BANK)
-        if accesses.filter(subject__isnull=True).exists():
-            return queryset
-        return queryset.filter(
-            chapter__subject_id__in=accesses.values_list('subject_id', flat=True)
-        )
+        return queryset.filter(chapter__subject__in=subjects_for_user(request.user))
 
     def choices_status(self, obj):
         count = obj.choices.count()

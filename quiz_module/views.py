@@ -99,7 +99,7 @@ def quiz_create(request):
     if not can_create_quiz(request.user):
         messages.error(request, "برای ساخت آزمون باید دسترسی آزمون از طرف مدیر برای شما فعال شود.")
         return redirect("quiz_module:quiz_list")
-    form = QuizForm(request.POST or None)
+    form = QuizForm(request.POST or None, user=request.user)
     if request.method == "POST" and form.is_valid():
         quiz = form.save(commit=False)
         quiz.creator = request.user
@@ -117,7 +117,7 @@ def quiz_edit(request, pk):
     quiz = get_object_or_404(Quiz, pk=pk)
     if not can_manage_quiz(request.user, quiz):
         raise Http404
-    form = QuizForm(request.POST or None, instance=quiz)
+    form = QuizForm(request.POST or None, instance=quiz, user=request.user)
     if request.method == "POST" and form.is_valid():
         form.save()
         _mark_consultant_quiz_changed(request.user, quiz)
@@ -141,7 +141,7 @@ def question_create(request, pk):
     if not can_edit_quiz_questions(request.user, quiz):
         raise Http404
     question = QuizQuestion(quiz=quiz, order=quiz.questions.count())
-    form = QuizQuestionForm(request.POST or None, request.FILES or None, instance=question, quiz=quiz)
+    form = QuizQuestionForm(request.POST or None, request.FILES or None, instance=question, quiz=quiz, user=request.user)
     formset = QuizChoiceFormSet(request.POST or None, request.FILES or None, instance=question)
     if request.method == "POST" and form.is_valid():
         question = form.save(commit=False)
@@ -165,7 +165,7 @@ def question_edit(request, pk, question_id):
     if not can_edit_quiz_questions(request.user, quiz):
         raise Http404
     question = get_object_or_404(QuizQuestion, pk=question_id, quiz=quiz)
-    form = QuizQuestionForm(request.POST or None, request.FILES or None, instance=question, quiz=quiz)
+    form = QuizQuestionForm(request.POST or None, request.FILES or None, instance=question, quiz=quiz, user=request.user)
     formset = QuizChoiceFormSet(request.POST or None, request.FILES or None, instance=question)
     if request.method == "POST" and form.is_valid() and formset.is_valid():
         with transaction.atomic():
@@ -219,7 +219,7 @@ def bank_import(request, pk):
     quiz = get_object_or_404(Quiz, pk=pk)
     if not can_edit_quiz_questions(request.user, quiz):
         raise Http404
-    form = BankImportForm(request.POST or None)
+    form = BankImportForm(request.POST or None, user=request.user, quiz=quiz)
     if request.method == "POST" and form.is_valid():
         with transaction.atomic():
             order = quiz.questions.count()

@@ -36,6 +36,10 @@ class User(AbstractUser):
         verbose_name='دسترسی‌ها',
         help_text='برای کاربران غیر دانش‌آموز، دسترسی‌های مجاز را انتخاب کنید.',
     )
+    allowed_grades = models.ManyToManyField(
+        'users_module.Grade', blank=True, related_name='authorized_users',
+        verbose_name='پایه‌های مجاز مدیریت',
+    )
 
     moderation_student_gender = models.CharField(
         "جنسیت دانش‌آموزان مجاز برای نظارت بر تیکت",

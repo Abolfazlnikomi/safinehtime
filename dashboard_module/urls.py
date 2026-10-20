@@ -1,6 +1,8 @@
 from django.urls import path
 from .views import dash_view, mark_content_notifications_read, module_settings, notification_feed, presence_status, toggle_module
+from questions_module.structure import school_structure
 urlpatterns = [
+    path('school-structure/', school_structure, name='school_structure'),
     path('', dash_view, name="dashboard"),
     path('modules/', module_settings, name="module_settings"),
     path('notifications/read/', mark_content_notifications_read, name="notifications_read"),

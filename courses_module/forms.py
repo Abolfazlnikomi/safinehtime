@@ -5,6 +5,8 @@ import jdatetime
 
 from auth_module.models import UserRole
 from users_module.models import FieldOfStudy, Grade, Province, School, Subject
+from users_module.curriculum_access import grades_for_user, subjects_for_user
+from users_module.school_structure import GENERAL_GRADES
 from .models import Course, CourseResource, CourseSection, CourseEpisode
 
 
@@ -40,9 +42,17 @@ class CourseCreateForm(forms.ModelForm):
         self.user = user
         super().__init__(*args, **kwargs)
 
-        self.fields["allowed_grades"].queryset = Grade.objects.filter(is_active=True).select_related("school")
-        self.fields["allowed_fields"].queryset = FieldOfStudy.objects.filter(is_active=True).select_related("grade")
-        self.fields["subjects"].queryset = Subject.objects.filter(is_active=True).select_related("field")
+        grades = grades_for_user(user)
+        subjects = subjects_for_user(user, access_code='course')
+        fields = FieldOfStudy.objects.filter(is_active=True, grade__in=grades)
+        self.fields["allowed_grades"].queryset = grades.select_related("school")
+        self.fields["allowed_fields"].queryset = fields.select_related("grade")
+        self.fields["subjects"].queryset = subjects.select_related("field__grade")
+        self.curriculum_fields = list(fields.values('id', 'grade_id'))
+        self.curriculum_books = list(subjects.values('id', 'field_id', 'field__grade_id'))
+        self.fields['allowed_grades'].label_from_instance = lambda grade: f'{grade.title} · {grade.school.name}'
+        self.fields['allowed_fields'].label_from_instance = lambda field: f'{field.title} · {field.grade.title}'
+        self.fields['subjects'].label_from_instance = lambda book: f'{book.title} · {book.field.grade.title} · {book.field.title}'
         self.fields["allowed_provinces"].queryset = Province.objects.order_by("name")
         self.fields["allowed_cities"].queryset = School.objects.select_related("province").order_by("province__name", "name")
         self.fields["allowed_cities"].label_from_instance = lambda school: f"{school.name} · {school.province}"
@@ -126,6 +136,28 @@ class CourseCreateForm(forms.ModelForm):
 
     def clean(self):
         cleaned = super().clean()
+        grades = cleaned.get('allowed_grades')
+        fields = cleaned.get('allowed_fields')
+        subjects = cleaned.get('subjects')
+        if grades:
+            general_fields = self.fields['allowed_fields'].queryset.filter(grade__in=grades, grade__title__in=GENERAL_GRADES)
+            field_ids = set(fields.values_list('pk', flat=True)) if fields is not None else set()
+            field_ids.update(general_fields.values_list('pk', flat=True))
+            cleaned['allowed_fields'] = fields = self.fields['allowed_fields'].queryset.filter(pk__in=field_ids)
+        if grades and fields and fields.exclude(grade__in=grades).exists():
+            self.add_error('allowed_fields', 'رشته‌ها باید متعلق به پایه‌های انتخاب‌شده باشند.')
+        if subjects:
+            if grades and subjects.exclude(field__grade__in=grades).exists():
+                self.add_error('subjects', 'کتاب‌ها باید متعلق به پایه‌های انتخاب‌شده باشند.')
+            if fields and subjects.exclude(field__in=fields).exists():
+                self.add_error('subjects', 'کتاب‌ها باید متعلق به رشته‌های انتخاب‌شده باشند.')
+        if self.user and not self.user.is_superuser:
+            if not grades:
+                self.add_error('allowed_grades', 'برای محدودماندن دوره به پایه‌های مجاز، حداقل یک پایه انتخاب کنید.')
+            if not fields:
+                self.add_error('allowed_fields', 'حداقل یک رشته انتخاب کنید.')
+            if not subjects:
+                self.add_error('subjects', 'حداقل یک کتاب انتخاب کنید.')
         provinces = cleaned.get("allowed_provinces")
         cities = cleaned.get("allowed_cities")
         if provinces and cities and cities.exclude(province__in=provinces).exists():
