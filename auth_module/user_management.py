@@ -9,6 +9,7 @@ from django.contrib.auth import get_user_model
 from django.db import transaction
 
 from users_module.models import FieldOfStudy, Grade, Province, School
+from users_module.school_structure import grade_title, is_general_grade
 from .models import Consultant, ProvinceTrustee, Student, UserRole
 
 
@@ -140,6 +141,11 @@ def import_users(upload):
                     raise ValueError("استان برای این نقش الزامی است.")
                 province = _province(row["province"])
             if role == UserRole.STUDENT:
+                row['grade'] = grade_title(row.get('grade'))
+                if is_general_grade(row['grade']):
+                    if row.get('field') not in {'', None, 'عمومی'}:
+                        raise ValueError('پایه‌های پنجم تا نهم رشته ندارند؛ ستون رشته را خالی بگذارید.')
+                    row['field'] = 'عمومی'
                 empty_student_fields = [label for key, label in (("city", "مدرسه"), ("grade", "پایه"), ("field", "رشته")) if not row.get(key)]
                 if empty_student_fields:
                     raise ValueError("برای دانش‌آموز این موارد الزامی است: " + "، ".join(empty_student_fields))

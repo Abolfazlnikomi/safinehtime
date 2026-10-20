@@ -108,6 +108,20 @@ class Chapter(models.Model):
             raise ValidationError({'subject': 'انتخاب درس ثبت‌شده الزامی است.'})
 
 
+class Lesson(models.Model):
+    chapter = models.ForeignKey(Chapter, on_delete=models.CASCADE, related_name='lessons', verbose_name='فصل')
+    name = models.CharField('نام درس', max_length=200)
+
+    class Meta:
+        verbose_name = 'درس کتاب'
+        verbose_name_plural = 'درس‌های کتاب'
+        ordering = ['chapter_id', 'name']
+        constraints = [models.UniqueConstraint(fields=['chapter', 'name'], name='unique_lesson_per_chapter')]
+
+    def __str__(self):
+        return f'{self.chapter} | {self.name}'
+
+
 class Topic(models.Model):
     """مبحث آموزشی متعلق به یک فصل."""
     chapter = models.ForeignKey(
@@ -117,6 +131,8 @@ class Topic(models.Model):
         verbose_name='فصل',
     )
     name = models.CharField('نام مبحث', max_length=200)
+    lesson = models.ForeignKey(Lesson, on_delete=models.PROTECT, related_name='topics',
+                               verbose_name='درس کتاب', null=True, blank=True)
     is_active = models.BooleanField('فعال', default=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -126,13 +142,19 @@ class Topic(models.Model):
         ordering = ['chapter__subject__title', 'chapter__name', 'name']
         constraints = [
             models.UniqueConstraint(
-                fields=['chapter', 'name'],
+                fields=['chapter', 'name'], condition=models.Q(lesson__isnull=True),
                 name='unique_topic_per_chapter',
-            )
+            ),
+            models.UniqueConstraint(fields=['lesson', 'name'], name='unique_topic_per_lesson'),
         ]
 
     def __str__(self):
-        return f'{self.chapter} | {self.name}'
+        return f'{self.lesson or self.chapter} | {self.name}'
+
+    def clean(self):
+        super().clean()
+        if self.lesson_id and self.lesson.chapter_id != self.chapter_id:
+            raise ValidationError({'lesson': 'درس انتخاب‌شده متعلق به این فصل نیست.'})
 
 
 # ==============================================================================

@@ -4,6 +4,7 @@ from django.db.models import Q
 
 from auth_module.models import Consultant, UserRole
 from users_module.models import Subject
+from users_module.curriculum_access import subjects_for_user
 
 from .models import Ticket, TicketMessage, TicketQueue, TicketStatus, TicketType
 
@@ -44,10 +45,7 @@ class TicketCreateForm(forms.ModelForm):
         self.fields["subject"].disabled = ticket_type != TicketType.LESSON
         self.fields["subject"].empty_label = "درس مرتبط با پرسش را انتخاب کنید"
         self.fields["content"].widget.attrs["placeholder"] = "پرسشت را با جزئیات بنویس تا بهتر راهنمایی‌ات کنیم…"
-        if student:
-            self.fields["subject"].queryset = Subject.objects.filter(
-                field=student.field, is_active=True
-            )
+        self.fields['subject'].queryset = subjects_for_user(student.user).filter(field=student.field) if student else Subject.objects.none()
 
     def clean(self):
         cleaned = super().clean()
