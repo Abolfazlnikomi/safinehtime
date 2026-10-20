@@ -133,6 +133,17 @@ def visible_tickets_for(user):
     return queryset.none()
 
 
+def visible_messages_for(ticket, user):
+    messages = ticket.messages.select_related('sender', 'reviewed_by')
+    if user.is_superuser or user.role in {
+        UserRole.CONTENT_MODERATOR, UserRole.PROVINCE_TRUSTEE, UserRole.ADMIN,
+    }:
+        return messages
+    return messages.filter(
+        Q(sender=user) | Q(moderation_status=ModerationStatus.APPROVED, is_internal=False)
+    )
+
+
 def route_after_initial_approval(ticket, actor):
     if ticket.is_private_consultation:
         queue = TicketQueue.CONSULTANT

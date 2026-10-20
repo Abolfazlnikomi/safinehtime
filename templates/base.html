@@ -432,6 +432,11 @@
             {% endif %}
 
             <!-- ۳. برنامه‌ریزی و هدایت مشاوره‌ای -->
+            {% if can_view_student_records %}
+            <a href="{% url 'student_records:list' %}" class="sidebar-link flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold {% if '/student-records/' in request.path %}active{% else %}text-slate-600{% endif %}" title="پرونده دانش‌آموزی">
+                <span class="sidebar-icon text-violet-600 bg-violet-50"><i class="fa-solid fa-folder-open"></i></span><span>پرونده دانش‌آموزی</span>
+            </a>
+            {% endif %}
             {% if user.is_authenticated %}
             <div class="space-y-1">
                 <p class="nav-section-title mb-1.5 px-3 text-[10px] font-black uppercase tracking-widest text-slate-400">

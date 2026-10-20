@@ -13,6 +13,7 @@ class Province(models.Model):
 
 
 class School(models.Model):
+    city = models.CharField('شهر', max_length=100, blank=True)
     province = models.ForeignKey(Province, models.CASCADE, 'schools')
     name = models.CharField(max_length=100)
 
@@ -57,6 +58,7 @@ class Subject(models.Model):
         return self.title
 class Access(models.Model):
     class Code(models.TextChoices):
+        STUDENT_RECORD = 'student_record', 'پرونده دانش‌آموزی'
         BANK = 'bank', 'بانک سوال'
         TICKET = 'ticket', 'تیکت'
         QUIZ = 'quiz', 'آزمون'
@@ -72,3 +74,7 @@ class Access(models.Model):
     name = models.CharField(max_length=200, choices=Code.choices)
     # اگر دسترسی ایجاد درس عمومی است و مربوط به درس خاصی نیست، subject باید null پذیر باشد:
     subject = models.ForeignKey(Subject, models.CASCADE, null=True, blank=True)
+
+    def __str__(self):
+        label = self.get_name_display()
+        return f'{label} · {self.subject}' if self.subject_id else label

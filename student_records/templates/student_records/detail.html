@@ -1,0 +1,52 @@
+{% extends 'student_records/layout.html' %}
+{% load static %}
+{% block content %}
+<div class="record-shell">
+    <div class="record-breadcrumb"><a href="{% url 'student_records:list' %}"><i class="fa-solid fa-arrow-right" aria-hidden="true"></i> پرونده دانش‌آموزان</a><span>/</span><span>{{ student.user.get_full_name|default:student.user.username }}</span></div>
+    <header class="record-hero record-profile">
+        <div class="record-profile-main">
+            <div class="record-profile-avatar" aria-hidden="true">{{ student.user.get_full_name|default:student.user.username|slice:':1' }}<span><i class="fa-solid fa-graduation-cap"></i></span></div>
+            <div><span class="record-eyebrow">یک نگاه کامل به مسیر یادگیری</span><h1>{{ student.user.get_full_name|default:student.user.username }}</h1><div class="record-profile-tags"><span><i class="fa-solid fa-school" aria-hidden="true"></i> {{ student.field.grade.school }}</span><span>{{ student.field.grade }} · {{ student.field }}</span></div><p class="record-muted"><i class="fa-solid fa-location-dot" aria-hidden="true"></i> {{ student.field.grade.school.province }}{% if student.field.grade.school.city %}، {{ student.field.grade.school.city }}{% endif %}</p></div>
+        </div>
+        <div class="record-profile-aside"><span class="record-secure"><i class="fa-solid fa-shield-halved" aria-hidden="true"></i> پرونده محرمانه</span><span class="record-muted">شناسه دانش‌آموز: {{ student.user.username }}</span><a class="record-button record-button-small" href="?tab=reports#new-report"><i class="fa-solid fa-plus" aria-hidden="true"></i> ثبت کارنامه</a></div>
+    </header>
+    <div class="record-metrics">
+        <article class="record-metric record-violet"><span class="record-metric-icon"><i class="fa-solid fa-chart-simple" aria-hidden="true"></i></span><div><span>شاخص تحصیلی</span><strong>{{ overall|floatformat:2|default:'—' }} <small>از ۲۰</small></strong><span class="record-metric-caption">{{ level }}</span></div></article>
+        <article class="record-metric record-cyan"><span class="record-metric-icon"><i class="fa-solid fa-award" aria-hidden="true"></i></span><div><span>میانگین معدل‌ها</span><strong>{{ report_average|floatformat:2|default:'—' }} <small>از ۲۰</small></strong><span class="record-metric-caption">معدل‌های ثبت‌شده در کارنامه</span></div></article>
+        <article class="record-metric record-rose"><span class="record-metric-icon"><i class="fa-solid fa-folder-open" aria-hidden="true"></i></span><div><span>کارنامه‌های ثبت‌شده</span><strong>{{ reports|length }} <small>کارنامه</small></strong><span class="record-metric-caption">تصویر و نمرات در یک‌جا</span></div></article>
+        <article class="record-metric record-amber"><span class="record-metric-icon"><i class="fa-solid fa-file-circle-check" aria-hidden="true"></i></span><div><span>آزمون‌های انجام‌شده</span><strong>{{ attempts|length }} <small>آزمون</small></strong><span class="record-metric-caption">به‌روزرسانی خودکار نتایج</span></div></article>
+    </div>
+    <nav class="record-tabs" aria-label="بخش‌های پرونده">
+        <a href="?tab=overview" {% if active_tab == 'overview' %}class="is-active" aria-current="page"{% endif %}><i class="fa-solid fa-grip" aria-hidden="true"></i> نمای کلی</a>
+        <a href="?tab=reports" {% if active_tab == 'reports' %}class="is-active" aria-current="page"{% endif %}><i class="fa-solid fa-folder-open" aria-hidden="true"></i> کارنامه و نمرات</a>
+        <a href="?tab=exams" {% if active_tab == 'exams' %}class="is-active" aria-current="page"{% endif %}><i class="fa-solid fa-file-pen" aria-hidden="true"></i> آزمون‌ها</a>
+        <a href="?tab=notes" {% if active_tab == 'notes' %}class="is-active" aria-current="page"{% endif %}><i class="fa-regular fa-note-sticky" aria-hidden="true"></i> یادداشت مشاور</a>
+        <a href="?tab=chats" {% if active_tab == 'chats' %}class="is-active" aria-current="page"{% endif %}><i class="fa-regular fa-comments" aria-hidden="true"></i> تاریخچه گفتگوها</a>
+    </nav>
+    <div class="record-tab-content" id="record-content">
+        {% if active_tab == 'overview' %}{% include 'student_records/_overview.html' %}
+        {% elif active_tab == 'reports' %}{% include 'student_records/_reports.html' %}
+        {% elif active_tab == 'exams' %}{% include 'student_records/_exams.html' %}
+        {% elif active_tab == 'notes' %}{% include 'student_records/_notes.html' %}
+        {% elif active_tab == 'chats' %}{% include 'student_records/_chats.html' %}{% endif %}
+    </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script src="{% static 'jalalidatepicker/jalalidatepicker.js' %}"></script>
+<script src="{% static 'student_records/calendar.js' %}"></script>
+<script>
+const addGradeButton = document.getElementById('add-grade');
+addGradeButton?.addEventListener('click', function () {
+    const total = document.getElementById('id_grades-TOTAL_FORMS');
+    const count = Number(total.value);
+    if (count >= 100) return;
+    document.getElementById('grade-entries').insertAdjacentHTML('beforeend', document.getElementById('empty-grade').innerHTML.replace(/__prefix__/g, String(count)));
+    total.value = count + 1;
+});
+if (location.hash === '#new-report') {
+    const reportForm = document.getElementById('new-report');
+    if (reportForm) reportForm.open = true;
+}
+</script>
+{% endblock %}

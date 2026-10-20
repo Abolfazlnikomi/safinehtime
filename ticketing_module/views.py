@@ -203,42 +203,9 @@ def ticket_create(request):
 
 
 def _visible_messages(ticket, user):
-    messages_qs = ticket.messages.select_related(
-        "sender",
-        "reviewed_by",
-    )
+    from .services import visible_messages_for
 
-    # ناظر، معتمد استان، ادمین و سوپریوزر همه پیام‌ها را می‌بینند؛
-    # از جمله پیام‌های در انتظار بررسی.
-    if (
-        user.is_superuser
-        or user.role
-        in {
-            UserRole.CONTENT_MODERATOR,
-            UserRole.PROVINCE_TRUSTEE,
-            UserRole.ADMIN,
-        }
-    ):
-        return messages_qs
-
-    # دانش‌آموز، پیام‌های خودش و پیام‌های تأییدشده عمومی را می‌بیند.
-    if user.role == UserRole.STUDENT:
-        return messages_qs.filter(
-            Q(sender=user)
-            | Q(
-                moderation_status=ModerationStatus.APPROVED,
-                is_internal=False,
-            )
-        )
-
-    # سایر کاربران مجاز نیز پیام‌های خودشان و پیام‌های تأییدشده را می‌بینند.
-    return messages_qs.filter(
-        Q(sender=user)
-        | Q(
-            moderation_status=ModerationStatus.APPROVED,
-            is_internal=False,
-        )
-    )
+    return visible_messages_for(ticket, user)
 
 
 @role_required(*ALL_ROLES)

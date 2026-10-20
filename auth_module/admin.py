@@ -7,7 +7,7 @@ from .models import Consultant, ProvinceTrustee, Student, User
 @admin.register(User)
 class CustomUserAdmin(UserAdmin):
     fieldsets = UserAdmin.fieldsets + (
-        ("اطلاعات سامانه", {"fields": ("role", "phone_number", "gender", "allowed_grades")}),
+        ("اطلاعات سامانه", {"fields": ("role", "phone_number", "gender", "allowed_grades", "accesses")}),
         ("محدوده نظارت بر تیکت", {"fields": ("moderation_student_gender",)}),
     )
     list_display = ("username", "get_full_name", "role", "phone_number", "is_active")

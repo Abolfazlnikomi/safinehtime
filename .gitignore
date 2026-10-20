@@ -29,6 +29,7 @@ bunfig.toml
 .yarnrc
 .yarnrc.yml
 media/
+private_uploads/
 __pycache__/
 *.py[cod]
 *$py.class

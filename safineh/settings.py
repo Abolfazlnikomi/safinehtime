@@ -52,6 +52,7 @@ INSTALLED_APPS = [
     "counseling_module",
     "reports_module",
     "classroom_module",
+    "student_records",
 ]
 
 
@@ -84,6 +85,7 @@ TEMPLATES = [
                 "django.contrib.messages.context_processors.messages",
                 "dashboard_module.context_processors.fanous_shell",
                 "dashboard_module.context_processors.module_availability",
+                "student_records.permissions.navigation",
             ],
         },
     },
