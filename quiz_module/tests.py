@@ -6,10 +6,10 @@ from django.test import TestCase
 from django.utils import timezone
 
 from auth_module.models import ProvinceTrustee, UserRole
-from questions_module.models import Chapter, Question, Topic
+from questions_module.models import Chapter, Lesson, Question, Topic
 from users_module.models import Access, FieldOfStudy, Grade, Province, School, Subject
 
-from .forms import QuizForm
+from .forms import QuizForm, QuizQuestionForm
 from .models import Quiz, QuizAnswer, QuizChoice, QuizQuestion
 from .permissions import can_create_quiz
 from .services import create_attempt, finalize_attempt
@@ -32,6 +32,35 @@ class QuizFeatureTests(TestCase):
         self.consultant.accesses.add(access)
         self.assertTrue(can_create_quiz(self.consultant))
         self.assertTrue(can_create_quiz(self.admin))
+
+    def test_question_curriculum_selection_and_edit_initials(self):
+        self.admin.is_superuser = True
+        book = Subject.objects.create(title="کتاب ریاضی", field=self.field)
+        chapter = Chapter.objects.create(subject=book, name="فصل اول")
+        lesson = Lesson.objects.create(chapter=chapter, name="درس اول")
+        topic = Topic.objects.create(chapter=chapter, lesson=lesson, name="مبحث اول")
+        other_chapter = Chapter.objects.create(subject=book, name="فصل دوم")
+        other_topic = Topic.objects.create(chapter=other_chapter, name="مبحث دوم")
+        data = {
+            "book": book.pk, "chapter": chapter.pk, "lesson": lesson.pk,
+            "bank_topic": topic.pk, "question_type": "DES", "text": "سؤال", "points": "1",
+        }
+        form = QuizQuestionForm(data=data, user=self.admin)
+        self.assertTrue(form.is_valid(), form.errors)
+        self.assertEqual(form.save(commit=False).bank_topic, topic)
+        edited = QuizQuestionForm(instance=QuizQuestion(bank_topic=topic), user=self.admin)
+        self.assertEqual(edited.initial["book"], book.pk)
+        self.assertEqual(edited.initial["chapter"], chapter.pk)
+        self.assertEqual(edited.initial["lesson"], lesson.pk)
+        invalid = QuizQuestionForm(data={**data, "bank_topic": other_topic.pk}, user=self.admin)
+        self.assertFalse(invalid.is_valid())
+        self.assertIn("bank_topic", invalid.errors)
+        missing = QuizQuestionForm(data={**data, "bank_topic": ""}, user=self.admin)
+        self.assertFalse(missing.is_valid())
+        self.assertIn("bank_topic", missing.errors)
+        restricted = QuizQuestionForm(data=data, user=self.student)
+        self.assertFalse(restricted.is_valid())
+        self.assertIn("book", restricted.errors)
 
     def test_jalali_form_accepts_arbitrary_minute(self):
         form = QuizForm(data={

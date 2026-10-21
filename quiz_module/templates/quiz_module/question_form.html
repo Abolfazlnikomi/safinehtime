@@ -25,8 +25,13 @@
         <div class="quiz-section-title"><span class="quiz-section-icon"><i class="fa-solid fa-sliders"></i></span><div><h2 class="font-black text-slate-800">تنظیمات سؤال</h2><p class="mt-1 text-[11px] text-slate-400">نوع، مبحث و بارم سؤال</p></div></div>
         <div class="grid gap-5 md:grid-cols-3">
             <div><label class="quiz-label" for="{{ form.question_type.id_for_label }}">{{ form.question_type.label }}</label>{{ form.question_type }}{% for error in form.question_type.errors %}<p class="quiz-error">{{ error }}</p>{% endfor %}</div>
-            <div><label class="quiz-label" for="{{ form.bank_topic.id_for_label }}">{{ form.bank_topic.label }}</label>{{ form.bank_topic }}{% for error in form.bank_topic.errors %}<p class="quiz-error">{{ error }}</p>{% endfor %}</div>
             <div><label class="quiz-label" for="{{ form.points.id_for_label }}">{{ form.points.label }}</label>{{ form.points }}{% for error in form.points.errors %}<p class="quiz-error">{{ error }}</p>{% endfor %}</div>
+        </div>
+        <div class="mt-5 grid gap-5 md:grid-cols-2">
+            <div><label class="quiz-label" for="{{ form.book.id_for_label }}">{{ form.book.label }}</label>{{ form.book }}{% for error in form.book.errors %}<p class="quiz-error">{{ error }}</p>{% endfor %}</div>
+            <div><label class="quiz-label" for="{{ form.chapter.id_for_label }}">{{ form.chapter.label }}</label>{{ form.chapter }}{% for error in form.chapter.errors %}<p class="quiz-error">{{ error }}</p>{% endfor %}</div>
+            <div><label class="quiz-label" for="{{ form.lesson.id_for_label }}">{{ form.lesson.label }}</label>{{ form.lesson }}{% for error in form.lesson.errors %}<p class="quiz-error">{{ error }}</p>{% endfor %}</div>
+            <div><label class="quiz-label" for="{{ form.bank_topic.id_for_label }}">{{ form.bank_topic.label }}</label>{{ form.bank_topic }}<p class="mt-1 text-xs text-slate-400">{{ form.bank_topic.help_text }}</p>{% for error in form.bank_topic.errors %}<p class="quiz-error">{{ error }}</p>{% endfor %}</div>
         </div>
     </section>
 
@@ -81,6 +86,7 @@
 {% endblock %}
 
 {% block quiz_js %}
+{{ form.hierarchy|json_script:"quiz-question-hierarchy" }}
 <script>
 function toggleChoices() {
     const section = document.getElementById('choices-section');
@@ -90,6 +96,29 @@ function toggleChoices() {
 document.addEventListener('DOMContentLoaded', function () {
     toggleChoices();
     document.getElementById('id_question_type')?.addEventListener('change', toggleChoices);
+    const hierarchy = JSON.parse(document.getElementById('quiz-question-hierarchy').textContent);
+    const book = document.getElementById('{{ form.book.id_for_label|escapejs }}');
+    const chapter = document.getElementById('{{ form.chapter.id_for_label|escapejs }}');
+    const lesson = document.getElementById('{{ form.lesson.id_for_label|escapejs }}');
+    const topic = document.getElementById('{{ form.bank_topic.id_for_label|escapejs }}');
+    function populate(select, rows, value) {
+        select.replaceChildren(new Option('---------', ''));
+        rows.forEach(row => select.add(new Option(row.name, row.id)));
+        select.value = value || '';
+    }
+    function updateHierarchy(resetFrom = '') {
+        const chapterValue = resetFrom === 'book' ? '' : chapter.value;
+        const chapters = hierarchy.chapters.filter(row => String(row.subject_id) === book.value);
+        populate(chapter, chapters, chapterValue);
+        const lessonValue = ['book', 'chapter'].includes(resetFrom) ? '' : lesson.value;
+        populate(lesson, hierarchy.lessons.filter(row => String(row.chapter_id) === chapter.value), lessonValue);
+        const topicValue = resetFrom ? '' : topic.value;
+        populate(topic, hierarchy.topics.filter(row => String(row.chapter_id) === chapter.value && (!lesson.value || String(row.lesson_id) === lesson.value)), topicValue);
+    }
+    book.addEventListener('change', () => updateHierarchy('book'));
+    chapter.addEventListener('change', () => updateHierarchy('chapter'));
+    lesson.addEventListener('change', () => updateHierarchy('lesson'));
+    updateHierarchy();
 });
 </script>
 {% endblock %}

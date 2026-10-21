@@ -12,7 +12,8 @@ from users_module.curriculum_access import grades_for_user, subjects_for_user
 from users_module.models import FieldOfStudy
 from users_module.school_structure import is_general_grade
 # خط ۱۱ را به این شکل تغییر بده:
-from questions_module.models import Question, Topic
+from questions_module.models import Chapter, Lesson, Question, Topic
+from users_module.models import Subject
 
 from .models import Quiz, QuizChoice, QuizQuestion
 
@@ -110,6 +111,10 @@ class QuizForm(forms.ModelForm):
 
 
 class QuizQuestionForm(forms.ModelForm):
+    book = forms.ModelChoiceField(label="کتاب", queryset=Subject.objects.none(), required=False)
+    chapter = forms.ModelChoiceField(label="فصل", queryset=Chapter.objects.none(), required=False)
+    lesson = forms.ModelChoiceField(label="درس", queryset=Lesson.objects.none(), required=False)
+
     class Meta:
         model = QuizQuestion
         fields = ["question_type", "bank_topic", "text", "image", "explanation", "explanation_image", "points", "submit_to_bank"]
@@ -126,9 +131,53 @@ class QuizQuestionForm(forms.ModelForm):
         self.fields["bank_topic"].queryset = topics
         self.fields["bank_topic"].label = "مبحث مرتبط"
         self.fields["bank_topic"].help_text = "فقط مباحث پایه و رشته انتخاب‌شده در آزمون نمایش داده می‌شوند."
+        subjects = subjects_for_user(user, 'quiz')
+        if quiz is not None:
+            if quiz.field_id:
+                subjects = subjects.filter(field_id=quiz.field_id)
+            elif quiz.grade_id:
+                subjects = subjects.filter(field__grade_id=quiz.grade_id)
+        chapters = Chapter.objects.filter(subject__in=subjects)
+        lessons = Lesson.objects.filter(chapter__in=chapters)
+        self.hierarchy = {
+            "chapters": list(chapters.values("id", "name", "subject_id")),
+            "lessons": list(lessons.values("id", "name", "chapter_id")),
+            "topics": list(topics.values("id", "name", "chapter_id", "lesson_id")),
+        }
+        if not self.is_bound and self.instance.bank_topic_id:
+            topic = self.instance.bank_topic
+            self.initial.update(book=topic.chapter.subject_id, chapter=topic.chapter_id, lesson=topic.lesson_id)
+
+        def selected_id(name):
+            value = self.data.get(self.add_prefix(name)) if self.is_bound else self.initial.get(name)
+            return int(value) if str(value or '').isdecimal() else None
+
+        book_id, chapter_id, lesson_id = (selected_id(name) for name in ("book", "chapter", "lesson"))
+        self.fields["book"].queryset = subjects
+        self.fields["chapter"].queryset = chapters.filter(subject_id=book_id) if book_id else chapters
+        self.fields["lesson"].queryset = lessons.filter(chapter_id=chapter_id) if chapter_id else lessons
+        if book_id:
+            topics = topics.filter(chapter__subject_id=book_id)
+        if chapter_id:
+            topics = topics.filter(chapter_id=chapter_id)
+        if lesson_id:
+            topics = topics.filter(lesson_id=lesson_id)
+        self.fields["bank_topic"].queryset = topics
         for field in self.fields.values():
             if not isinstance(field.widget, (forms.CheckboxInput, CKEditorUploadingWidget)):
                 field.widget.attrs["class"] = CONTROL
+
+    def clean(self):
+        data = super().clean()
+        book, chapter, lesson = (data.get(name) for name in ("book", "chapter", "lesson"))
+        if lesson and book and lesson.chapter.subject_id != book.pk:
+            self.add_error("lesson", "درس انتخاب‌شده متعلق به این کتاب نیست.")
+        topic = data.get("bank_topic")
+        if (book or chapter or lesson) and not topic and "bank_topic" not in self.errors:
+            self.add_error("bank_topic", "برای ذخیره دسته‌بندی سؤال، مبحث را انتخاب کنید.")
+        if topic and lesson and topic.lesson_id != lesson.pk:
+            self.add_error("bank_topic", "مبحث انتخاب‌شده متعلق به این درس نیست.")
+        return data
 
 
 class BaseChoiceFormSet(forms.BaseInlineFormSet):
