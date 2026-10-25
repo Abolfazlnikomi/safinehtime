@@ -1,0 +1,17 @@
+<fieldset class="hw-field hw-students hw-audience" data-assignment-audience>
+    <legend><i class="fa-solid fa-users" aria-hidden="true"></i> انتخاب دانش‌آموزان هدف</legend>
+    <p class="hw-audience-help">استان، پایه، رشته یا درس را انتخاب کنید؛ فقط دانش‌آموزان محدوده مجاز شما نمایش داده می‌شوند.</p>
+    <div class="hw-audience-filters">
+        {% for filter in form.audience_filters %}<div><label for="{{ filter.id_for_label }}">{{ filter.label }}</label>{{ filter }}{% for error in filter.errors %}<p class="hw-error" role="alert">{{ error }}</p>{% endfor %}</div>{% endfor %}
+    </div>
+    <div class="hw-audience-search"><label for="{{ form.student_search.id_for_label }}">{{ form.student_search.label }}</label>{{ form.student_search }}{% for error in form.student_search.errors %}<p class="hw-error" role="alert">{{ error }}</p>{% endfor %}</div>
+    <p class="hw-audience-help">فیلتر درس بر اساس درس‌های تعریف‌شده برای رشته و پایه دانش‌آموز است. با تغییر فیلتر، انتخاب‌های خارج از نتایج حذف می‌شوند.</p>
+    <label class="hw-audience-all" for="{{ form.send_to_all.id_for_label }}">{{ form.send_to_all }}<span><strong>ارسال برای همه</strong><small>همه دانش‌آموزان مطابق فیلتر و جست‌وجوی فعلی؛ بدون فیلتر، همه افراد محدوده دسترسی شما.</small></span><i class="fa-solid fa-paper-plane" aria-hidden="true"></i></label>
+    {% for error in form.send_to_all.errors %}<p class="hw-error" role="alert">{{ error }}</p>{% endfor %}
+    <div class="hw-audience-toolbar"><span class="hw-audience-count" aria-live="polite" data-audience-count>تعداد مخاطبان پس از انتخاب فیلتر نمایش داده می‌شود.</span><div><button type="button" data-audience-select>انتخاب همه نتایج</button><button type="button" data-audience-clear>پاک‌کردن انتخاب‌ها</button><button type="button" data-audience-reset>حذف فیلترها</button></div></div>
+    <div class="hw-audience-list" data-audience-list>{{ field }}</div>
+    <p class="hw-audience-empty" data-audience-empty hidden>دانش‌آموزی با این فیلترها پیدا نشد؛ فیلترها را تغییر دهید.</p>
+    {% for error in field.errors %}<p class="hw-error" role="alert">{{ error }}</p>{% endfor %}
+    <noscript><p class="hw-hint">بدون جاوااسکریپت نیز فیلترها هنگام ثبت اعمال می‌شوند؛ برای ارسال گروهی، «ارسال برای همه» را فعال کنید.</p></noscript>
+    {{ form.audience_catalog|json_script:'assignment-audience-data' }}
+</fieldset>

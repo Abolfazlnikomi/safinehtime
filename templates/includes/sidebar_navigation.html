@@ -1,0 +1,195 @@
+{% url 'dashboard' as dashboard_url %}
+{% url 'module_settings' as module_settings_url %}
+<nav class="sidebar-navigation flex-1 overflow-y-auto px-4 py-4 space-y-4" aria-label="منوی اصلی">
+<section class="sidebar-section space-y-1" data-sidebar-section="workspace" aria-labelledby="sidebar-workspace-title">
+    <p id="sidebar-workspace-title" class="nav-section-title mb-1.5 px-3 text-[10px] font-black uppercase tracking-widest text-slate-400">میز کار</p>
+<a href="{% url 'dashboard' %}"
+                   class="sidebar-link flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold {% if request.path == dashboard_url %}active{% else %}text-slate-600{% endif %}" title="داشبورد">
+                    <span class="sidebar-icon text-white" style="background:linear-gradient(135deg,#8b5cf6,#2563eb 55%,#06b6d4);box-shadow:0 6px 16px rgba(79,70,229,.24)">
+                        <i class="fa-solid fa-shapes text-sm"></i>
+                    </span>
+                    <span>داشبورد اصلی</span>
+                </a>
+</section>
+{% if user.is_authenticated %}
+{% if fanous_courses_active or user.role == 'STUDENT' or user.role == 'CONSULTANT' or user.role == 'ADMIN' %}
+<section class="sidebar-section space-y-1" data-sidebar-section="learning" aria-labelledby="sidebar-learning-title">
+    <p id="sidebar-learning-title" class="nav-section-title mb-1.5 px-3 text-[10px] font-black uppercase tracking-widest text-slate-400">کلاس‌ها و دوره‌ها</p>
+{% if user.role == 'STUDENT' or user.role == 'CONSULTANT' or user.role == 'ADMIN' %}
+<a href="{% url 'classroom_module:list' %}" class="sidebar-link flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold {% if '/classes/' in request.path %}active{% else %}text-slate-600{% endif %}" title="کلاس‌ها">
+                    <span class="sidebar-icon text-rose-500 bg-rose-50"><i class="fa-solid fa-chalkboard-user"></i></span>
+                    <span class="flex-1">{% if user.role == 'ADMIN' %}مدیریت کلاس‌ها{% else %}کلاس‌های آنلاین{% endif %}</span>
+                    {% if fanous_has_class %}<span class="sidebar-badge h-2.5 w-2.5 animate-pulse rounded-full bg-rose-500" title="امروز کلاس دارید"></span>{% endif %}
+                </a>
+{% endif %}
+{% if fanous_courses_active %}
+<a href="{% url 'courses_module:course_list' %}"
+                   class="sidebar-link flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold {% if request.path == '/courses/' %}active{% else %}text-slate-600{% endif %}" title="دوره‌ها و درس‌ها">
+                    <span class="sidebar-icon text-blue-500 bg-blue-50"><i class="fa-solid fa-book-open-reader"></i></span>
+                    <span>{% if user.role == 'ADMIN' or user.is_superuser %}مدیریت دوره‌ها و درس‌ها{% else %}دوره‌ها و درس‌ها{% endif %}</span>
+                </a>
+{% if user.role == 'CONSULTANT' %}
+<a href="{% url 'courses_module:my_courses' %}"
+                   class="sidebar-link flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold {% if '/courses/my' in request.path %}active{% else %}text-slate-600{% endif %}" title="دوره‌های من">
+                    <span class="sidebar-icon text-slate-500 bg-slate-50"><i class="fa-solid fa-layer-group"></i></span>
+                    <span>دوره‌های من</span>
+                </a>
+<a href="{% url 'courses_module:course_create' %}"
+                   class="sidebar-link flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold {% if '/courses/create' in request.path %}active{% else %}text-slate-600{% endif %}" title="ساخت دوره جدید">
+                    <span class="sidebar-icon text-teal-500 bg-teal-50"><i class="fa-solid fa-plus"></i></span>
+                    <span>ساخت دوره جدید</span>
+                </a>
+{% endif %}
+{% if user.role == 'PROVINCE_TRUSTEE' %}
+<a href="{% url 'courses_module:my_courses' %}" class="sidebar-link flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold {% if request.path == '/courses/my/' %}active{% else %}text-slate-600{% endif %}" title="دوره‌های تأییدنشده">
+                    <span class="sidebar-icon text-amber-500 bg-amber-50"><i class="fa-solid fa-shield-check"></i></span>
+                        <span>دوره‌های تأییدنشده</span>
+                </a>
+{% endif %}
+{% endif %}
+</section>
+{% endif %}
+{% if can_view_assignments or fanous_question_bank_active or fanous_quizzes_active or user.role == 'CONSULTANT' %}
+<section class="sidebar-section space-y-1" data-sidebar-section="assessment" aria-labelledby="sidebar-assessment-title">
+    <p id="sidebar-assessment-title" class="nav-section-title mb-1.5 px-3 text-[10px] font-black uppercase tracking-widest text-slate-400">تمرین و ارزیابی</p>
+{% if can_view_assignments %}
+<a href="{% url 'assignments:list' %}" class="sidebar-link flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold {% if '/assignments/' in request.path %}active{% else %}text-slate-600{% endif %}" title="تکالیف">
+                <span class="sidebar-icon text-teal-600 bg-teal-50"><i class="fa-solid fa-clipboard-check"></i></span><span>تکالیف</span>
+            </a>
+{% endif %}
+{% if fanous_question_bank_active %}
+<a href="{% url 'questions_module:choose_mode' %}"
+                   data-nav-prefix="/questions/"
+                   class="sidebar-link flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold {% if '/questions/' in request.path and user.role != 'CONSULTANT' or '/questions/wizard/' in request.path or '/questions/practice/' in request.path or '/questions/exam/' in request.path %}active{% else %}text-slate-600{% endif %}" title="بانک سؤال">
+                    <span class="sidebar-icon text-cyan-500 bg-cyan-50"><i class="fa-solid fa-brain"></i></span>
+                    <span>بانک سؤالات</span>
+                </a>
+{% endif %}
+{% if fanous_quizzes_active %}
+<a href="{% url 'quiz_module:quiz_list' %}"
+                   class="sidebar-link flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold {% if '/quizzes/' in request.path %}active{% else %}text-slate-600{% endif %}" title="آزمون‌ها">
+                    <span class="sidebar-icon text-indigo-500 bg-indigo-50"><i class="fa-solid fa-file-circle-check"></i></span>
+                    <span>آزمون‌های آنلاین</span>
+                </a>
+{% endif %}
+{% if user.role == 'CONSULTANT' %}
+<a href="{% url 'questions_module:question_list' %}"
+                   class="sidebar-link flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold {% if '/questions/' in request.path and '/questions/wizard/' not in request.path and '/questions/practice/' not in request.path and '/questions/exam/' not in request.path %}active{% else %}text-slate-600{% endif %}" title="وضعیت سؤال‌ها">
+                    <span class="sidebar-icon text-cyan-500 bg-cyan-50"><i class="fa-solid fa-list-check"></i></span>
+                    <span>وضعیت سؤال‌های من</span>
+                </a>
+{% endif %}
+</section>
+{% endif %}
+<section class="sidebar-section space-y-1" data-sidebar-section="guidance" aria-labelledby="sidebar-guidance-title">
+    <p id="sidebar-guidance-title" class="nav-section-title mb-1.5 px-3 text-[10px] font-black uppercase tracking-widest text-slate-400">برنامه‌ریزی و مشاوره</p>
+<a href="{% url 'plans_module:board' %}"
+                   class="sidebar-link flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold {% if '/plans/' in request.path %}active{% else %}text-slate-600{% endif %}" title="برنامه مطالعاتی">
+                    <span class="sidebar-icon text-amber-500 bg-amber-50"><i class="fa-solid fa-calendar-days"></i></span>
+                    <span>
+                        {% if user.role == 'STUDENT' %}برنامه شخصی من{% elif user.role == 'CONSULTANT' %}برنامه دانش‌آموزان{% else %}مدیریت برنامه‌ها{% endif %}
+                    </span>
+                </a>
+{% if user.role == 'STUDENT' %}
+<a href="{% url 'counseling:my_consultant' %}"
+                   class="sidebar-link flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold {% if '/counseling/' in request.path %}active{% else %}text-slate-600{% endif %}" title="مشاور من">
+                    <span class="sidebar-icon text-emerald-500 bg-emerald-50"><i class="fa-solid fa-user-shield"></i></span>
+                    <span>مشاور من</span>
+                </a>
+{% endif %}
+{% if user.role == 'CONSULTANT' %}
+<a href="{% url 'counseling:my_students' %}"
+                   class="sidebar-link flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold {% if '/counseling/my-students' in request.path %}active{% else %}text-slate-600{% endif %}" title="دانش‌آموزان من">
+                    <span class="sidebar-icon text-emerald-500 bg-emerald-50"><i class="fa-solid fa-user-group"></i></span>
+                    <span>دانش‌آموزان من</span>
+                </a>
+{% endif %}
+{% if user.role == 'PROVINCE_TRUSTEE' or user.role == 'ADMIN' %}
+<a href="{% url 'counseling:manage' %}"
+                   class="sidebar-link flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold {% if '/counseling/manage' in request.path %}active{% else %}text-slate-600{% endif %}" title="تخصیص مشاور">
+                    <span class="sidebar-icon text-emerald-600 bg-emerald-50"><i class="fa-solid fa-people-arrows-left-right"></i></span>
+                    <span>تخصیص مشاور</span>
+                </a>
+{% endif %}
+{% if can_view_student_records %}
+<a href="{% url 'student_records:list' %}" class="sidebar-link flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold {% if '/student-records/' in request.path %}active{% else %}text-slate-600{% endif %}" title="پرونده دانش‌آموزی">
+                <span class="sidebar-icon text-violet-600 bg-violet-50"><i class="fa-solid fa-folder-open"></i></span><span>پرونده دانش‌آموزی</span>
+            </a>
+{% endif %}
+</section>
+{% endif %}
+<section class="sidebar-section space-y-1" data-sidebar-section="updates" aria-labelledby="sidebar-updates-title">
+    <p id="sidebar-updates-title" class="nav-section-title mb-1.5 px-3 text-[10px] font-black uppercase tracking-widest text-slate-400">اخبار و محتوای آموزشی</p>
+<a href="{% url 'news_module:article_list' %}"
+                   class="sidebar-link flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold {% if '/news/' in request.path %}active{% else %}text-slate-600{% endif %}" title="اخبار و اطلاعیه‌ها">
+                    <span class="sidebar-icon text-sky-500 bg-sky-50">
+                        <i class="fa-solid fa-bullhorn"></i>
+                    </span>
+                    <span>اخبار و اطلاعیه‌ها</span>
+                </a>
+<a href="{% url 'blog:post_list' %}"
+                   class="sidebar-link flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold {% if '/blog/' in request.path %}active{% else %}text-slate-600{% endif %}" title="مجله آموزشی">
+                    <span class="sidebar-icon text-violet-500 bg-violet-50"><i class="fa-solid fa-newspaper"></i></span>
+                    <span>مجله آموزشی</span>
+                </a>
+</section>
+{% if user.is_authenticated %}
+<section class="sidebar-section space-y-1" data-sidebar-section="support" aria-labelledby="sidebar-support-title">
+    <p id="sidebar-support-title" class="nav-section-title mb-1.5 px-3 text-[10px] font-black uppercase tracking-widest text-slate-400">پشتیبانی و ارتباطات</p>
+{% if user.role == 'CONSULTANT' %}
+<a href="{% url 'ticketing:list' %}"
+                   class="sidebar-link flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold {% if '/tickets/' in request.path %}active{% else %}text-slate-600{% endif %}" title="تیکت‌های ارجاع‌شده">
+                    <span class="sidebar-icon text-amber-500 bg-amber-50"><i class="fa-solid fa-inbox"></i></span>
+                    <span>تیکت‌های ارجاع‌شده</span>
+                </a>
+{% else %}
+<a href="{% url 'ticketing:list' %}"
+                   class="sidebar-link flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold {% if '/tickets/' in request.path %}active{% else %}text-slate-600{% endif %}" title="تیکت‌های من">
+                    <span class="sidebar-icon text-slate-500 bg-slate-50"><i class="fa-solid fa-comments"></i></span>
+                    <span class="flex-1">تیکت‌های من</span>
+                </a>
+{% endif %}
+</section>
+{% endif %}
+{% if user.is_authenticated %}
+{% if user.role == 'ADMIN' or user.is_superuser or user.is_staff or user.role == 'PROVINCE_TRUSTEE' %}
+<section class="sidebar-section space-y-1" data-sidebar-section="management" aria-labelledby="sidebar-management-title">
+    <p id="sidebar-management-title" class="nav-section-title mb-1.5 px-3 text-[10px] font-black uppercase tracking-widest text-slate-400">مدیریت اعضا و مدرسه</p>
+{% if user.role == 'ADMIN' or user.is_superuser or user.is_staff %}
+<a href="{% url 'auth_module:user-management' %}"
+                   class="sidebar-link flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold {% if '/users/' in request.path %}active{% else %}text-slate-600{% endif %}" title="مدیریت کاربران">
+                    <span class="sidebar-icon text-blue-600 bg-blue-50"><i class="fa-solid fa-users-gear"></i></span>
+                    <span>مدیریت کاربران</span>
+                </a>
+<a href="{% url 'auth_module:user-management' %}#member-import"
+                   class="sidebar-link flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-slate-600" title="ورود اعضا">
+                    <span class="sidebar-icon text-emerald-600 bg-emerald-50"><i class="fa-solid fa-file-import"></i></span>
+                    <span>ورود و ثبت اعضا</span>
+                </a>
+{% endif %}
+{% if user.is_superuser or user.role == 'ADMIN' or user.role == 'PROVINCE_TRUSTEE' %}
+<a href="{% url 'school_structure' %}" title="ساختار مدرسه" class="sidebar-link flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold {% if 'school-structure' in request.path %}active{% else %}text-slate-600{% endif %}">
+                <span class="sidebar-icon text-cyan-600 bg-cyan-50"><i class="fa-solid fa-school"></i></span>
+                <span>ساختار مدرسه</span>
+            </a>
+{% endif %}
+</section>
+{% endif %}
+{% endif %}
+{% if user.is_authenticated %}
+{% if user.role == 'ADMIN' or user.is_superuser %}
+<section class="sidebar-section space-y-1" data-sidebar-section="system" aria-labelledby="sidebar-system-title">
+    <p id="sidebar-system-title" class="nav-section-title mb-1.5 px-3 text-[10px] font-black uppercase tracking-widest text-slate-400">گزارش‌ها و تنظیمات</p>
+<a href="{% url 'reports_module:people_activity' %}" class="sidebar-link flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold {% if '/reports/' in request.path %}active{% else %}text-slate-600{% endif %}" title="فعالیت افراد">
+                    <span class="sidebar-icon text-violet-600 bg-violet-50"><i class="fa-solid fa-chart-line"></i></span>
+                    <span class="flex-1">فعالیت افراد</span>
+                    <span class="sidebar-badge rounded-full bg-violet-100 px-2 py-0.5 text-[8px] font-black text-violet-600">LIVE</span>
+                </a>
+<a href="{% url 'module_settings' %}" class="sidebar-link flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold {% if request.path == module_settings_url %}active{% else %}text-slate-600{% endif %}" title="مدیریت بخش‌ها">
+                    <span class="sidebar-icon text-slate-600 bg-slate-100"><i class="fa-solid fa-sliders"></i></span>
+                    <span>مدیریت بخش‌ها</span>
+                </a>
+</section>
+{% endif %}
+{% endif %}
+</nav>

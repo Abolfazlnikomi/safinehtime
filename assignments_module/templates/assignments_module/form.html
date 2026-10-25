@@ -1,0 +1,13 @@
+{% extends 'assignments_module/base.html' %}
+{% load static %}
+{% block extra_css %}{{ block.super }}<link rel="stylesheet" href="{% static 'assignments/audience.css' %}">{% endblock %}
+{% block assignments_content %}
+<a class="hw-back" href="{% url 'assignments:list' %}">→ بازگشت به تکالیف</a>
+<header class="hw-page-heading"><span class="hw-eyebrow">طراحی یک فرصت یادگیری</span><h1>{% if item %}ویرایش تکلیف{% else %}تکلیف جدید{% endif %}</h1><p>فایل، دانش‌آموزان دریافت‌کننده، مهلت و نمره کل را مشخص کنید.</p></header>
+<div class="hw-two-columns"><section class="hw-panel"><form method="post" enctype="multipart/form-data" class="hw-form">{% csrf_token %}{% include 'assignments_module/fields.html' %}<div class="hw-actions"><button class="hw-button" type="submit">ثبت و ارسال تکلیف <span aria-hidden="true">←</span></button><a class="hw-button hw-secondary" href="{% url 'assignments:list' %}">انصراف</a></div></form></section>
+<aside class="hw-panel hw-guide"><span class="hw-file-icon"><i class="fa-solid fa-lightbulb" aria-hidden="true"></i></span><h2>یک تمرین خوب، یک قدم رو به جلو</h2><ol><li>عنوانی روشن و راهنمایی دقیق بنویسید.</li><li>هر نوع فایل تا ۵۰ مگابایت قابل بارگذاری است.</li><li>تاریخ را شمسی و ساعت را به وقت تهران وارد کنید.</li><li>پاسخ‌ها مستقیماً در همین تکلیف برای ثبت‌کننده نمایش داده می‌شوند.</li></ol><div class="hw-notice">تکالیف مشاور پیش از نمایش به دانش‌آموز، بررسی می‌شوند. پس از دریافت اولین پاسخ، مشخصات تکلیف قابل تغییر نیست.</div></aside></div>
+<script src="{% static 'assignments/assignments.js' %}" defer></script>
+<link rel="stylesheet" href="{% static 'jalalidatepicker/jalalidatepicker.css' %}">
+<script src="{% static 'jalalidatepicker/jalalidatepicker.js' %}" defer></script>
+<script src="{% static 'student_records/calendar.js' %}" defer></script>
+{% endblock %}

@@ -1,0 +1,2 @@
+{% extends 'assignments_module/base.html' %}
+{% block assignments_content %}<a class="hw-back" href="{% url 'assignments:detail' item.pk %}">→ بازگشت به تکلیف</a><section class="hw-panel hw-narrow"><h1>{{ heading }}</h1><p class="hw-hint">{{ item.title }}</p><form method="post" {% if upload %}enctype="multipart/form-data"{% endif %} class="hw-form">{% csrf_token %}{% include 'assignments_module/fields.html' %}<button type="submit" class="hw-button">{{ button }}</button></form></section>{% endblock %}

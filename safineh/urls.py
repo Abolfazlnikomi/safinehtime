@@ -5,6 +5,7 @@ from django.shortcuts import redirect
 from django.urls import include, path
 
 urlpatterns = [
+    path('assignments/', include('assignments_module.urls')),
     path('student-records/', include('student_records.urls')),
     path('lessons/', lambda request: redirect('courses_module:course_list'), name='lessons'),
     path("admin/", admin.site.urls),

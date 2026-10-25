@@ -31,7 +31,7 @@ def _day_greeting():
 
 
 def fanous_shell(request):
-    if not request.user.is_authenticated:
+    if not request.user.is_authenticated or getattr(getattr(request, 'resolver_match', None), 'app_name', '') == 'landing_module':
         return {}
 
     now = timezone.now()

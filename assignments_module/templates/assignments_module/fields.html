@@ -1,0 +1,15 @@
+{{ form.non_field_errors }}
+{% for field in form %}
+{% if not form.audience_control_names or field.name not in form.audience_control_names %}
+{% if field.name == 'students' %}
+{% include 'assignments_module/recipients.html' %}
+{% else %}
+<div class="hw-field">
+    <label for="{{ field.id_for_label }}">{{ field.label }}{% if field.field.required %}<span class="hw-required"> *</span>{% endif %}</label>
+    {{ field }}
+    {% if field.help_text %}<p class="hw-hint">{{ field.help_text }}</p>{% endif %}
+    {% for error in field.errors %}<p class="hw-error" role="alert">{{ error }}</p>{% endfor %}
+</div>
+{% endif %}
+{% endif %}
+{% endfor %}

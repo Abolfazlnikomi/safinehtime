@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}تکالیف | فانوس{% endblock %}
+{% block page_title %}تکالیف{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'assignments/assignments.css' %}">
+<link rel="stylesheet" href="{% static 'assignments/colorful.css' %}">
+{% endblock %}
+{% block content %}
+<div class="hw-shell" dir="rtl">
+    {% block assignments_content %}{% endblock %}
+</div>
+{% endblock %}
+{% block extra_js %}<script src="{% static 'assignments/countdown.js' %}" defer></script>{% endblock %}

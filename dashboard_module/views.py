@@ -17,6 +17,7 @@ from plans_module.models import PlanCompletion, PlanEntry
 from plans_module.services import current_week_start, student_profile_for
 from counseling_module.models import StudentConsultantAssignment
 from counseling_module.services import manageable_students_for
+from assignments_module.services import dashboard_assignments
 from .models import ModuleAvailability, UserPresence
 
 # ایمپورت مدل اخبار
@@ -33,6 +34,7 @@ except ModuleNotFoundError:
 def dash_view(request):
     context = {}
     now = timezone.now()
+    context.update(dashboard_assignments(request.user, now))
 
     # دریافت آخرین اخبار منتشر شده (۴ خبر اخیر)
     context["latest_news"] = (

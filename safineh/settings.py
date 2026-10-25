@@ -53,6 +53,7 @@ INSTALLED_APPS = [
     "reports_module",
     "classroom_module",
     "student_records",
+    "assignments_module",
 ]
 
 
@@ -86,6 +87,7 @@ TEMPLATES = [
                 "dashboard_module.context_processors.fanous_shell",
                 "dashboard_module.context_processors.module_availability",
                 "student_records.permissions.navigation",
+                "assignments_module.permissions.navigation",
             ],
         },
     },

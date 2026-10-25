@@ -19,7 +19,7 @@ from .models import ModuleAvailability, PresencePeak
 class QuestionBankSidebarTests(SimpleTestCase):
     def render_sidebar(self, user, active=True):
         request = RequestFactory().get(reverse("questions_module:choose_mode"))
-        content = render_to_string("base.html", {
+        content = render_to_string("includes/sidebar_navigation.html", {
             "user": user,
             "request": request,
             "fanous_question_bank_active": active,
@@ -41,6 +41,78 @@ class QuestionBankSidebarTests(SimpleTestCase):
 
     def test_question_bank_link_is_hidden_for_anonymous_users(self):
         self.assertNotIn('data-nav-prefix="/questions/"', self.render_sidebar(AnonymousUser()))
+
+
+class SidebarNavigationTests(SimpleTestCase):
+    def render_sidebar(self, role=UserRole.STUDENT, path=None, **context):
+        return render_to_string("includes/sidebar_navigation.html", {
+            "user": User(username="navigation-user", role=role),
+            "request": RequestFactory().get(path or reverse("dashboard")),
+            "fanous_courses_active": True,
+            "fanous_question_bank_active": True,
+            "fanous_quizzes_active": True,
+            "can_view_assignments": True,
+            "can_view_student_records": True,
+            **context,
+        })
+
+    def section(self, content, name):
+        return content.split(f'data-sidebar-section="{name}"', 1)[1].split("</section>", 1)[0]
+
+    def test_features_are_grouped_by_function(self):
+        content = self.render_sidebar(UserRole.ADMIN)
+        for group, routes in {
+            "workspace": ["dashboard"],
+            "learning": ["classroom_module:list", "courses_module:course_list"],
+            "assessment": ["assignments:list", "questions_module:choose_mode", "quiz_module:quiz_list"],
+            "guidance": ["plans_module:board", "counseling:manage", "student_records:list"],
+            "updates": ["news_module:article_list", "blog:post_list"],
+            "support": ["ticketing:list"],
+            "management": ["auth_module:user-management", "school_structure"],
+            "system": ["reports_module:people_activity", "module_settings"],
+        }.items():
+            for route in routes:
+                with self.subTest(group=group, route=route):
+                    self.assertIn(f'href="{reverse(route)}"', self.section(content, group))
+
+    def test_admin_course_destination_is_not_duplicated(self):
+        content = self.render_sidebar(UserRole.ADMIN)
+        self.assertEqual(content.count(f'href="{reverse("courses_module:course_list")}"'), 1)
+
+    def test_students_do_not_see_management_groups(self):
+        content = self.render_sidebar(can_view_student_records=False)
+        self.assertNotIn('data-sidebar-section="management"', content)
+        self.assertNotIn('data-sidebar-section="system"', content)
+        self.assertNotIn(reverse("student_records:list"), content)
+
+    def test_trustee_school_structure_is_grouped_with_management(self):
+        content = self.render_sidebar(UserRole.PROVINCE_TRUSTEE)
+        management = self.section(content, "management")
+        self.assertIn(reverse("school_structure"), management)
+        self.assertNotIn(reverse("auth_module:user-management"), management)
+
+    def test_disabled_assessment_features_do_not_leave_empty_group(self):
+        content = self.render_sidebar(
+            can_view_assignments=False,
+            fanous_question_bank_active=False,
+            fanous_quizzes_active=False,
+        )
+        self.assertNotIn('data-sidebar-section="assessment"', content)
+
+    def test_settings_do_not_highlight_dashboard(self):
+        content = self.render_sidebar(UserRole.ADMIN, reverse("module_settings"))
+        self.assertNotIn("active", self.section(content, "workspace"))
+        self.assertIn("active", self.section(content, "system"))
+
+    def test_classroom_uses_actual_route_for_active_state(self):
+        content = self.render_sidebar(path=reverse("classroom_module:list"))
+        self.assertIn("active", self.section(content, "learning"))
+
+    def test_consultant_question_links_have_one_active_destination(self):
+        for route in ["questions_module:question_list", "questions_module:choose_mode"]:
+            with self.subTest(route=route):
+                content = self.render_sidebar(UserRole.CONSULTANT, reverse(route))
+                self.assertEqual(self.section(content, "assessment").count(" active"), 1)
 
 
 class FanousDashboardTests(TestCase):

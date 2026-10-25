@@ -1,0 +1,24 @@
+{% load static shamsi %}
+{% if show_active_assignments %}
+<section class="active-homework" aria-labelledby="active-homework-heading">
+  <header class="active-homework-header">
+    <div class="active-homework-title"><span class="active-homework-symbol"><i class="fa-solid fa-clipboard-check" aria-hidden="true"></i></span><div><span class="active-homework-eyebrow">قدم‌های کوچک، پیشرفت‌های بزرگ</span><h2 id="active-homework-heading">تکالیف فعال <span>{{ active_assignments_count }}</span></h2><p>مهلت ارسال را ببین و برای قدم بعدی آماده شو.</p></div></div>
+    <a class="active-homework-all" href="{% url 'assignments:list' %}?tab=open">مشاهده همه تکالیف <i class="fa-solid fa-arrow-left" aria-hidden="true"></i></a>
+  </header>
+  <div class="active-homework-grid">
+  {% for homework in active_assignments %}
+    <article class="active-homework-card {% if homework.is_urgent %}is-urgent{% endif %}">
+      <div class="active-homework-card-top"><span class="active-homework-label"><i class="fa-regular fa-clock" aria-hidden="true"></i> {% if homework.is_urgent %}فرصت رو به پایان{% else %}فرصت یادگیری{% endif %}</span><span class="active-homework-score">{{ homework.max_score }} نمره</span></div>
+      <h3><a href="{% url 'assignments:detail' homework.pk %}">{{ homework.title }}</a></h3>
+      <p class="active-homework-author">{{ homework.creator.get_full_name|default:homework.creator.username }}</p>
+      <div class="active-homework-countdown"><span>زمان باقی‌مانده برای ارسال</span><strong data-assignment-deadline="{{ homework.deadline|date:'c' }}">{{ homework.time_remaining }}</strong></div>
+      <div class="active-homework-deadline"><i class="fa-regular fa-calendar" aria-hidden="true"></i><time datetime="{{ homework.deadline|date:'c' }}">{{ homework.deadline|shamsi:'%Y/%m/%d' }} · ساعت {{ homework.deadline|date:'H:i' }}</time><small>تهران</small></div>
+      <a class="active-homework-link" href="{% url 'assignments:detail' homework.pk %}">{% if user.role == 'STUDENT' and not user.is_superuser %}مشاهده و ارسال پاسخ{% else %}مشاهده تکلیف{% endif %}<span aria-hidden="true">←</span></a>
+    </article>
+  {% empty %}
+    <div class="active-homework-empty"><span><i class="fa-solid fa-mug-hot" aria-hidden="true"></i></span><div><h3>فعلاً تکلیف فعالی نداری!</h3><p>تکالیف جدید با مهلت ارسال، همین‌جا نمایش داده می‌شوند.</p></div><a href="{% url 'assignments:list' %}">مرور تکالیف قبلی ←</a></div>
+  {% endfor %}
+  </div>
+</section>
+<script src="{% static 'assignments/countdown.js' %}" defer></script>
+{% endif %}

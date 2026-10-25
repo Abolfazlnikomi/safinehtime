@@ -1,0 +1,32 @@
+{% extends 'assignments_module/base.html' %}
+{% load shamsi assignment_tags %}
+{% block assignments_content %}
+<header class="hw-hero">
+    <div class="hw-hero-art" aria-hidden="true"><span><i class="fa-solid fa-pencil"></i></span><span><i class="fa-solid fa-star"></i></span><span><i class="fa-solid fa-book-open"></i></span></div>
+    <div><span class="hw-eyebrow">یادگیری، یک قدم فراتر</span><h1>تکالیف <span>و تمرین‌ها</span></h1><p>{% if is_student %}تمرین کن، پاسخت را بفرست و بازخورد بگیر.{% else %}از تعریف تمرین تا بررسی پاسخ‌ها؛ همه‌چیز در یک فضای منظم.{% endif %}</p></div>
+    <div class="hw-actions">{% if can_create %}<a class="hw-button hw-white" href="{% url 'assignments:create' %}"><i class="fa-solid fa-plus" aria-hidden="true"></i> تکلیف جدید</a>{% endif %}{% if is_admin %}<a class="hw-button hw-glass" href="{% url 'assignments:access' %}">مدیریت دسترسی‌ها</a>{% endif %}</div>
+</header>
+<div class="hw-overview" aria-label="نمای کلی تکالیف">
+    <div class="hw-overview-item violet"><span class="hw-overview-icon"><i class="fa-solid fa-layer-group" aria-hidden="true"></i></span><div><strong>{{ summary.total }}</strong><span>تکلیف در مسیر یادگیری</span></div></div>
+    <div class="hw-overview-item blue"><span class="hw-overview-icon"><i class="fa-solid fa-hourglass-half" aria-hidden="true"></i></span><div><strong>{{ summary.active }}</strong><span>تکلیف با فرصت ارسال</span></div></div>
+    <div class="hw-overview-item pink"><span class="hw-overview-icon"><i class="fa-solid fa-circle-check" aria-hidden="true"></i></span><div><strong>{{ summary.published }}</strong><span>تکلیف منتشرشده</span></div></div>
+</div>
+{% if can_review %}<a class="hw-review-banner" href="?tab=review"><span><i class="fa-solid fa-shield-halved" aria-hidden="true"></i> میز بررسی محتوا</span><span>{{ pending_count }} تکلیف در انتظار بررسی ←</span></a>{% endif %}
+<div class="hw-toolbar">
+    <nav class="hw-tabs" aria-label="فیلتر تکالیف"><a class="{% if tab == 'all' %}selected{% endif %}" href="?tab=all">همه تکالیف</a><a class="{% if tab == 'open' %}selected{% endif %}" href="?tab=open">مهلت‌دار</a>{% if can_create %}<a class="{% if tab == 'mine' %}selected{% endif %}" href="?tab=mine">تکالیف من</a>{% endif %}{% if can_review %}<a class="{% if tab == 'review' %}selected{% endif %}" href="?tab=review">منتظر تأیید</a>{% endif %}</nav>
+    <form method="get" class="hw-search"><input type="hidden" name="tab" value="{{ tab }}"><input name="q" value="{{ query }}" placeholder="جست‌وجوی عنوان تکلیف…" aria-label="عنوان تکلیف"><button aria-label="جست‌وجو"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i></button></form>
+</div>
+<section class="hw-grid" aria-label="فهرست تکالیف">
+{% for item in page %}
+<article class="hw-card">
+    <div class="hw-card-top"><span class="hw-file-icon"><i class="fa-solid fa-file-lines" aria-hidden="true"></i></span><span class="hw-badge {{ item.status }}">{{ item.get_status_display }}</span></div>
+    <h2><a href="{% url 'assignments:detail' item.pk %}">{{ item.title }}</a></h2><p class="hw-excerpt">{{ item.description|truncatechars:125 }}</p>
+    <div class="hw-meta"><span><i class="fa-regular fa-clock" aria-hidden="true"></i> {{ item.deadline|shamsi:"%Y/%m/%d" }} · {{ item.deadline|date:'H:i' }}</span><span><i class="fa-solid fa-star" aria-hidden="true"></i> از {{ item.max_score }} نمره</span></div>
+    {% if item.status == 'published' %}<div class="hw-time-left"><span><i class="fa-solid fa-hourglass-half" aria-hidden="true"></i> فرصت ارسال</span><strong data-assignment-deadline="{{ item.deadline|date:'c' }}">{{ item.deadline|assignment_remaining }}</strong></div>{% endif %}
+    <div class="hw-card-footer"><span>{{ item.creator.get_full_name|default:item.creator.username }}</span><span>{% if is_student %}{% if item.is_open %}<span class="hw-open">آماده دریافت پاسخ</span>{% else %}مهلت پایان یافته{% endif %}{% else %}{{ item.response_count }} پاسخ / {{ item.audience_count }} نفر{% endif %}</span></div>
+    <a class="hw-card-link" href="{% url 'assignments:detail' item.pk %}">{% if is_student %}مشاهده و ارسال پاسخ{% elif tab == 'review' %}بررسی تکلیف{% else %}جزئیات و پاسخ‌ها{% endif %}<span aria-hidden="true">←</span></a>
+</article>
+{% empty %}<div class="hw-empty"><i class="fa-solid fa-clipboard-list" aria-hidden="true"></i><h2>هنوز تکلیفی اینجا نیست</h2><p>{% if can_create %}با ثبت یک تمرین تازه، مسیر یادگیری را شروع کنید.{% else %}تکالیف تأییدشده‌ای که برای شما ثبت شوند، اینجا نمایش داده می‌شوند.{% endif %}</p></div>{% endfor %}
+</section>
+{% if page.has_other_pages %}<nav class="hw-pagination" aria-label="صفحه‌بندی">{% if page.has_previous %}<a class="hw-button hw-secondary" href="?page={{ page.previous_page_number }}&tab={{ tab|urlencode }}&q={{ query|urlencode }}">قبلی</a>{% endif %}<span>صفحه {{ page.number }} از {{ page.paginator.num_pages }}</span>{% if page.has_next %}<a class="hw-button hw-secondary" href="?page={{ page.next_page_number }}&tab={{ tab|urlencode }}&q={{ query|urlencode }}">بعدی</a>{% endif %}</nav>{% endif %}
+{% endblock %}

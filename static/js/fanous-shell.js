@@ -4,8 +4,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const candidates = links.map((link, index) => {
     const path = (link.dataset.navPrefix || new URL(link.href, window.location.origin).pathname).replace(/\/+$/, '/') || '/';
     const matches = path === '/dashboard/' ? current === path : path !== '/' && current.startsWith(path);
-    return { link, path, index, matches };
-  }).filter(item => item.matches).sort((a, b) => b.path.length - a.path.length || a.index - b.index);
+    return { link, path, index, matches, active: link.classList.contains('active') };
+  }).filter(item => item.matches).sort((a, b) => b.path.length - a.path.length || Number(b.active) - Number(a.active) || a.index - b.index);
   links.forEach(link => { link.classList.remove('active', 'sidebar-link-active'); link.removeAttribute('aria-current'); });
   if (candidates[0]) {
     candidates[0].link.classList.add('active');

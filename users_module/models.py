@@ -58,6 +58,7 @@ class Subject(models.Model):
         return self.title
 class Access(models.Model):
     class Code(models.TextChoices):
+        ASSIGNMENT = 'assignment', 'تکالیف'
         STUDENT_RECORD = 'student_record', 'پرونده دانش‌آموزی'
         BANK = 'bank', 'بانک سوال'
         TICKET = 'ticket', 'تیکت'
